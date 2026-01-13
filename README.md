@@ -40,7 +40,7 @@ npm run auth:init
 npm run dev
 ```
 
-Open [http://localhost:6029](http://localhost:6029) in your browser.
+Open [http://localhost:6030](http://localhost:6030) in your browser.
 
 ## Project Documentation
 
@@ -89,7 +89,7 @@ This comprehensive document includes:
 ## Available Scripts
 
 ```bash
-npm run dev              # Start development server (port 6029)
+npm run dev              # Start development server (port 6030)
 npm run build            # Build for production
 npm run start            # Start production server
 npm run lint             # Run ESLint
@@ -127,7 +127,8 @@ The `Examples/` folder contains sample Excel files demonstrating the data struct
 - Emails.xlsx - Email configurations
 - External_Info.xlsx - External connections/VPNs
 - Managed_Info.xlsx - Managed WAN/ISP provider info
-- Admin Emails.xlsx, Admin Mitel Logins.xlsx, Cloudflare_Admins.xlsx - Admin credentials
+- Admin Emails.xlsx, Admin Mitel Logins.xlsx, Cloudflare_Admins.xlsx, Acronis Backups.xlsx - Admin credentials
+- GuacamoleHosts.xlsx - Guacamole remote access URLs
 - Phone Numbers.xlsx - Contact information
 - logo.png - Company logo
 
@@ -151,5 +152,64 @@ For questions or issues:
 
 ---
 
-**Status:** Phase 1 Development
-**Last Updated:** 2026-01-12
+## Current Features (Phase 1 - Complete!)
+
+### Dashboard
+- **Single-page dashboard** with 5 data sections
+- **Client selector** to filter all data by selected client
+- **Color-coded clickable section headers** that open full-page modals
+- **Navigation buttons** for quick access to:
+  - **Guacamole** - Opens remote access URL from GuacamoleHosts.xlsx
+  - Misc, Devices, Containers, VMs, Billing, Sonicwall, SLG Email Issues (placeholders)
+
+### Interactive Data Tables (All 5 Modals)
+Each modal includes a fully-featured data table with:
+- ✅ **Real-time search** - Search across all fields instantly
+- ✅ **Sortable columns** - Click headers to sort ascending/descending
+- ✅ **Pagination** - Navigate large datasets (50/100/200 rows per page)
+- ✅ **Password masking** - Show/hide toggle for sensitive fields
+- ✅ **Export CSV** - Download filtered data
+- ✅ **CRUD operations** (mockup UI - writes to Excel pending):
+  - Add New button (green)
+  - Edit button per row (blue)
+  - Delete button per row (red with confirmation)
+
+### Data Sections
+1. **Core Infrastructure** (Blue) - Servers, routers, switches
+   - 14 columns including IP addresses, login credentials, service tags
+   - Password masking for Login, Password, Alt Login, Alt Passwd
+
+2. **Workstations + Users** (Green) - PC inventory and user accounts
+   - 10 columns combining workstation and user data
+   - Computer names, locations, users, emails, IP addresses
+
+3. **External Info** (Amber) - Firewalls and VPN connections
+   - 16 columns including firewall configs, VPN settings
+   - Password masking for admin and VPN passwords
+
+4. **Managed WAN Info** (Purple) - ISP provider information
+   - 11 columns including provider details, IPs, support contacts
+   - Multiple phone numbers for support escalation
+
+5. **Admin Credentials** (Rose) - Admin logins for various services
+   - **Split-panel layout** with 4 sub-sections:
+     - Admin Emails (top panel) - Name, Email, Password, Notes
+     - Mitel Logins (bottom left) - Login, Password
+     - Acronis Backups (bottom middle) - Username, Password
+     - Cloudflare Admins (bottom right) - Username, Password
+   - Each section independently searchable/sortable
+
+### Authentication
+- JWT-based login system
+- User session management
+- Protected routes
+- Session persistence
+
+### Components
+- **DataTable** - Reusable table component with search, sort, filter, pagination
+- **FullPageModal** - Modal overlay system with keyboard shortcuts (ESC to close)
+- **Responsive design** - Works on desktop, tablet, mobile
+
+**Status:** Phase 1 Complete - Full read-only dashboard with CRUD mockups
+**Next Phase:** Implement actual write operations to Excel files
+**Last Updated:** 2026-01-13

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FullPageModal } from "@/components/FullPageModal";
+import { DataTable } from "@/components/DataTable";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,6 +22,10 @@ export default function DashboardPage() {
     cloudflareAdmins: []
   });
   const [loadingData, setLoadingData] = useState(false);
+  const [guacamoleHosts, setGuacamoleHosts] = useState<any[]>([]);
+
+  // Modal state
+  const [openModal, setOpenModal] = useState<string | null>(null);
 
   // Extract data fetching into reusable function
   const fetchClientData = () => {
@@ -33,9 +39,10 @@ export default function DashboardPage() {
       fetch(`/api/data/core?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/workstations-users?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/managed-info?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/admin-credentials?client=${selectedClient}`).then(res => res.json())
+      fetch(`/api/data/admin-credentials?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/guacamole?client=${selectedClient}`).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData]) => {
         console.log("Admin credentials response:", adminData); // Debug log
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
@@ -47,6 +54,7 @@ export default function DashboardPage() {
           acronisBackups: adminData.acronisBackups || [],
           cloudflareAdmins: adminData.cloudflareAdmins || []
         });
+        setGuacamoleHosts(guacData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -61,6 +69,7 @@ export default function DashboardPage() {
           acronisBackups: [],
           cloudflareAdmins: []
         });
+        setGuacamoleHosts([]);
         setLoadingData(false);
       });
   };
@@ -173,6 +182,160 @@ export default function DashboardPage() {
             >
               ↻
             </button>
+
+            {/* Navigation Buttons */}
+            {selectedClient && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem', borderLeft: '1px solid #d1d5db', paddingLeft: '1rem' }}>
+                {/* Guacamole Button - Opens URL from GuacamoleHosts */}
+                {guacamoleHosts.length > 0 && guacamoleHosts[0]?.['Cloud Name'] && (
+                  <button
+                    onClick={() => window.open(guacamoleHosts[0]['Cloud Name'], '_blank')}
+                    style={{
+                      padding: '0.375rem 0.75rem',
+                      border: '1px solid #3b82f6',
+                      borderRadius: '0.375rem',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      fontWeight: '500',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                    title={`Open ${guacamoleHosts[0]['Cloud Name'] || 'Guacamole'}`}
+                  >
+                    Guacamole
+                  </button>
+                )}
+                <button
+                  onClick={() => setOpenModal('misc')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  Misc
+                </button>
+                <button
+                  onClick={() => setOpenModal('devices')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  Devices
+                </button>
+                <button
+                  onClick={() => setOpenModal('containers')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  Containers
+                </button>
+                <button
+                  onClick={() => setOpenModal('vms')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  VMs
+                </button>
+                <button
+                  onClick={() => setOpenModal('billing')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  Billing
+                </button>
+                <button
+                  onClick={() => setOpenModal('sonicwall')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  Sonicwall
+                </button>
+                <button
+                  onClick={() => setOpenModal('slgEmail')}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #6b7280',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  SLG Email Issues
+                </button>
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
@@ -205,7 +368,29 @@ export default function DashboardPage() {
 
               {/* Core Infrastructure - 50% width, 70% height */}
               <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', padding: '0.75rem 1rem', margin: 0, borderBottom: '1px solid #e5e7eb', color: '#111827', backgroundColor: '#f9fafb' }}>
+                <h3
+                  onClick={() => setOpenModal('coreInfra')}
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: '600',
+                    padding: '0.625rem 1rem',
+                    margin: 0,
+                    borderBottom: '2px solid #3b82f6',
+                    color: '#1e40af',
+                    backgroundColor: '#eff6ff',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#dbeafe';
+                    e.currentTarget.style.borderBottomColor = '#2563eb';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                    e.currentTarget.style.borderBottomColor = '#3b82f6';
+                  }}
+                >
                   Core Infrastructure (Servers/Routers/Switches)
                 </h3>
                 {loadingData ? (
@@ -244,7 +429,29 @@ export default function DashboardPage() {
 
               {/* Workstations + Users - 50% width, 70% height */}
               <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', padding: '0.75rem 1rem', margin: 0, borderBottom: '1px solid #e5e7eb', color: '#111827', backgroundColor: '#f9fafb' }}>
+                <h3
+                  onClick={() => setOpenModal('workstationsUsers')}
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: '600',
+                    padding: '0.625rem 1rem',
+                    margin: 0,
+                    borderBottom: '2px solid #10b981',
+                    color: '#047857',
+                    backgroundColor: '#ecfdf5',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#d1fae5';
+                    e.currentTarget.style.borderBottomColor = '#059669';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ecfdf5';
+                    e.currentTarget.style.borderBottomColor = '#10b981';
+                  }}
+                >
                   Workstations + Users
                 </h3>
                 {loadingData ? (
@@ -287,7 +494,29 @@ export default function DashboardPage() {
 
               {/* External Info */}
               <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', padding: '0.75rem 1rem', margin: 0, borderBottom: '1px solid #e5e7eb', color: '#111827', backgroundColor: '#f9fafb' }}>
+                <h3
+                  onClick={() => setOpenModal('externalInfo')}
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: '600',
+                    padding: '0.625rem 1rem',
+                    margin: 0,
+                    borderBottom: '2px solid #f59e0b',
+                    color: '#b45309',
+                    backgroundColor: '#fffbeb',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fef3c7';
+                    e.currentTarget.style.borderBottomColor = '#d97706';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fffbeb';
+                    e.currentTarget.style.borderBottomColor = '#f59e0b';
+                  }}
+                >
                   External Info (Firewalls/VPN)
                 </h3>
                 {loadingData ? (
@@ -324,7 +553,29 @@ export default function DashboardPage() {
 
               {/* Managed WAN Info */}
               <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', padding: '0.75rem 1rem', margin: 0, borderBottom: '1px solid #e5e7eb', color: '#111827', backgroundColor: '#f9fafb' }}>
+                <h3
+                  onClick={() => setOpenModal('managedInfo')}
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: '600',
+                    padding: '0.625rem 1rem',
+                    margin: 0,
+                    borderBottom: '2px solid #8b5cf6',
+                    color: '#6d28d9',
+                    backgroundColor: '#f5f3ff',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ede9fe';
+                    e.currentTarget.style.borderBottomColor = '#7c3aed';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f5f3ff';
+                    e.currentTarget.style.borderBottomColor = '#8b5cf6';
+                  }}
+                >
                   Managed WAN Info (ISP)
                 </h3>
                 {loadingData ? (
@@ -363,7 +614,31 @@ export default function DashboardPage() {
 
               {/* Admin Credentials Box (1x4 horizontal) */}
               <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', padding: '0.5rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.25rem 0.5rem', margin: 0, color: '#111827' }}>
+                <h3
+                  onClick={() => setOpenModal('adminCredentials')}
+                  style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: '600',
+                    padding: '0.5rem 0.75rem',
+                    margin: 0,
+                    marginBottom: '0.5rem',
+                    color: '#be123c',
+                    borderBottom: '2px solid #fb7185',
+                    backgroundColor: '#fff1f2',
+                    cursor: 'pointer',
+                    borderRadius: '0.25rem 0.25rem 0 0',
+                    transition: 'all 0.15s',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffe4e6';
+                    e.currentTarget.style.borderBottomColor = '#f43f5e';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fff1f2';
+                    e.currentTarget.style.borderBottomColor = '#fb7185';
+                  }}
+                >
                   Admin Credentials
                 </h3>
                 {loadingData ? (
@@ -465,6 +740,364 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Full Page Modals */}
+      <FullPageModal
+        isOpen={openModal === 'coreInfra'}
+        onClose={() => setOpenModal(null)}
+        title="Core Infrastructure (Servers/Routers/Switches)"
+      >
+        <DataTable
+          data={coreInfra}
+          columns={[
+            { key: 'SubName', label: 'Location', sortable: true },
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'Machine Name / MAC', label: 'Machine Name/MAC', sortable: true },
+            { key: 'Service Tag', label: 'Service Tag', sortable: true },
+            { key: 'Description', label: 'Description', sortable: true },
+            { key: 'Login', label: 'Login', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'Alt Login', label: 'Alt Login', sortable: true },
+            { key: 'Alt Passwd', label: 'Alt Password', type: 'password', sortable: false },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Notes 2', label: 'Notes 2', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+            { key: 'Asset ID', label: 'Asset ID', sortable: true },
+          ]}
+          onEdit={(row) => {
+            alert('Edit functionality (mockup)\nEditing: ' + row.Name);
+          }}
+          onDelete={(row) => {
+            if (confirm(`Delete ${row.Name}?\n\nThis is a mockup - no actual deletion will occur.`)) {
+              alert('Delete confirmed (mockup only)');
+            }
+          }}
+          onAdd={() => {
+            alert('Add New functionality (mockup)\nThis will open a form to add a new infrastructure item.');
+          }}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'workstationsUsers'}
+        onClose={() => setOpenModal(null)}
+        title="Workstations + Users"
+      >
+        <DataTable
+          data={workstationsUsers}
+          columns={[
+            { key: 'computerName', label: 'Computer Name', sortable: true },
+            { key: 'location', label: 'Location', sortable: true },
+            { key: 'username', label: 'Username', sortable: true },
+            { key: 'fullName', label: 'Full Name', sortable: true },
+            { key: 'email', label: 'Email', type: 'email', sortable: true },
+            { key: 'os', label: 'Operating System', sortable: true },
+            { key: 'ipAddress', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'serviceTag', label: 'Service Tag', sortable: true },
+            { key: 'cpu', label: 'CPU', sortable: true },
+            { key: 'description', label: 'Description', sortable: true },
+          ]}
+          onEdit={(row) => {
+            alert('Edit functionality (mockup)\nEditing: ' + (row.computerName || row.fullName));
+          }}
+          onDelete={(row) => {
+            if (confirm(`Delete ${row.computerName || row.fullName}?\n\nThis is a mockup - no actual deletion will occur.`)) {
+              alert('Delete confirmed (mockup only)');
+            }
+          }}
+          onAdd={() => {
+            alert('Add New functionality (mockup)\nThis will open a form to add a new workstation/user.');
+          }}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'externalInfo'}
+        onClose={() => setOpenModal(null)}
+        title="External Info (Firewalls/VPN)"
+      >
+        <DataTable
+          data={externalInfo}
+          columns={[
+            { key: 'SubName', label: 'Location', sortable: true },
+            { key: 'Connection Type', label: 'Connection Type', sortable: true },
+            { key: 'Device Type', label: 'Device Type', sortable: true },
+            { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'Port', label: 'Port', type: 'number', sortable: true },
+            { key: 'Username', label: 'Username', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'VPN Port', label: 'VPN Port', type: 'number', sortable: true },
+            { key: 'VPN Username', label: 'VPN Username', sortable: true },
+            { key: 'VPN Password', label: 'VPN Password', type: 'password', sortable: false },
+            { key: 'VPN Domain', label: 'VPN Domain', sortable: true },
+            { key: 'Current Version', label: 'Firmware Version', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Notes 2', label: 'Notes 2', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+            { key: 'Asset ID', label: 'Asset ID', sortable: true },
+          ]}
+          onEdit={(row) => {
+            alert('Edit functionality (mockup)\nEditing: ' + (row['Device Type'] || 'device'));
+          }}
+          onDelete={(row) => {
+            if (confirm(`Delete ${row['Device Type'] || 'this device'}?\n\nThis is a mockup - no actual deletion will occur.`)) {
+              alert('Delete confirmed (mockup only)');
+            }
+          }}
+          onAdd={() => {
+            alert('Add New functionality (mockup)\nThis will open a form to add a new firewall/VPN connection.');
+          }}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'managedInfo'}
+        onClose={() => setOpenModal(null)}
+        title="Managed WAN Info (ISP)"
+      >
+        <DataTable
+          data={managedInfo}
+          columns={[
+            { key: 'Provider', label: 'Provider', sortable: true },
+            { key: 'Type', label: 'Connection Type', sortable: true },
+            { key: 'IP 1', label: 'Primary IP', type: 'ip', sortable: true },
+            { key: 'IP 2', label: 'Secondary IP', type: 'ip', sortable: true },
+            { key: 'Account #', label: 'Account Number', sortable: true },
+            { key: 'Phone 1', label: 'Support Phone 1', sortable: true },
+            { key: 'Phone 2', label: 'Support Phone 2', sortable: true },
+            { key: 'Phone 3', label: 'Support Phone 3', sortable: true },
+            { key: 'Phone 4', label: 'Support Phone 4', sortable: true },
+            { key: 'Note 1', label: 'Notes 1', sortable: true },
+            { key: 'Note 2', label: 'Notes 2', sortable: true },
+          ]}
+          onEdit={(row) => {
+            alert('Edit functionality (mockup)\nEditing: ' + (row.Provider || 'ISP connection'));
+          }}
+          onDelete={(row) => {
+            if (confirm(`Delete ${row.Provider || 'this connection'}?\n\nThis is a mockup - no actual deletion will occur.`)) {
+              alert('Delete confirmed (mockup only)');
+            }
+          }}
+          onAdd={() => {
+            alert('Add New functionality (mockup)\nThis will open a form to add a new ISP/WAN connection.');
+          }}
+          enablePasswordMasking={false}
+          enableSearch={true}
+          enableExport={true}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'adminCredentials'}
+        onClose={() => setOpenModal(null)}
+        title="Admin Credentials"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+          {/* Admin Emails */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '2px solid #fde047', borderRadius: '0.5rem', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: '#fef3c7', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '1rem', color: '#854d0e' }}>
+              Admin Emails ({adminCredentials.adminEmails.length})
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden', padding: '1rem' }}>
+              <DataTable
+                data={adminCredentials.adminEmails}
+                columns={[
+                  { key: 'Name', label: 'Name', sortable: true },
+                  { key: 'Email', label: 'Email', type: 'email', sortable: true },
+                  { key: 'Password', label: 'Password', type: 'password', sortable: false },
+                  { key: 'Notes', label: 'Notes', sortable: true },
+                ]}
+                onEdit={(row) => alert('Edit Admin Email (mockup)\n' + row.Email)}
+                onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
+                onAdd={() => alert('Add Admin Email (mockup)')}
+                rowsPerPageOptions={[25, 50]}
+              />
+            </div>
+          </div>
+
+          {/* Row with Mitel, Acronis, Cloudflare */}
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            {/* Mitel */}
+            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #93c5fd', borderRadius: '0.5rem', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#dbeafe', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#1e40af' }}>
+                Mitel Logins ({adminCredentials.mitelLogins.length})
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+                <DataTable
+                  data={adminCredentials.mitelLogins}
+                  columns={[
+                    { key: 'Login', label: 'Login', sortable: true },
+                    { key: 'Password', label: 'Password', type: 'password', sortable: false },
+                  ]}
+                  onEdit={(row) => alert('Edit Mitel (mockup)\n' + row.Login)}
+                  onDelete={(row) => confirm(`Delete ${row.Login}? (mockup)`) && alert('Deleted (mockup)')}
+                  onAdd={() => alert('Add Mitel Login (mockup)')}
+                  rowsPerPageOptions={[10, 25]}
+                  enableExport={false}
+                />
+              </div>
+            </div>
+
+            {/* Acronis */}
+            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #86efac', borderRadius: '0.5rem', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#d1fae5', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#166534' }}>
+                Acronis Backups ({adminCredentials.acronisBackups.length})
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+                <DataTable
+                  data={adminCredentials.acronisBackups}
+                  columns={[
+                    { key: 'UserName', label: 'Username', sortable: true },
+                    { key: 'PW', label: 'Password', type: 'password', sortable: false },
+                  ]}
+                  onEdit={(row) => alert('Edit Acronis (mockup)\n' + row.UserName)}
+                  onDelete={(row) => confirm(`Delete ${row.UserName}? (mockup)`) && alert('Deleted (mockup)')}
+                  onAdd={() => alert('Add Acronis Backup (mockup)')}
+                  rowsPerPageOptions={[10, 25]}
+                  enableExport={false}
+                />
+              </div>
+            </div>
+
+            {/* Cloudflare */}
+            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #fca5a5', borderRadius: '0.5rem', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#fecaca', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#991b1b' }}>
+                Cloudflare ({adminCredentials.cloudflareAdmins.length})
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+                <DataTable
+                  data={adminCredentials.cloudflareAdmins}
+                  columns={[
+                    { key: 'username', label: 'Username', sortable: true },
+                    { key: 'pass', label: 'Password', type: 'password', sortable: false },
+                  ]}
+                  onEdit={(row) => alert('Edit Cloudflare (mockup)\n' + row.username)}
+                  onDelete={(row) => confirm(`Delete ${row.username}? (mockup)`) && alert('Deleted (mockup)')}
+                  onAdd={() => alert('Add Cloudflare Admin (mockup)')}
+                  rowsPerPageOptions={[10, 25]}
+                  enableExport={false}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </FullPageModal>
+
+      {/* Navigation Button Modals */}
+      <FullPageModal
+        isOpen={openModal === 'misc'}
+        onClose={() => setOpenModal(null)}
+        title="Miscellaneous"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Miscellaneous Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'devices'}
+        onClose={() => setOpenModal(null)}
+        title="Devices"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Devices Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'containers'}
+        onClose={() => setOpenModal(null)}
+        title="Containers"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Containers Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'vms'}
+        onClose={() => setOpenModal(null)}
+        title="Virtual Machines"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Virtual Machines Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'billing'}
+        onClose={() => setOpenModal(null)}
+        title="Billing"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Billing Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'sonicwall'}
+        onClose={() => setOpenModal(null)}
+        title="Sonicwall"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            Sonicwall Information
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'slgEmail'}
+        onClose={() => setOpenModal(null)}
+        title="SLG Email Issues"
+      >
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+            SLG Email Issues
+          </h3>
+          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+            Content coming soon...
+          </p>
+        </div>
+      </FullPageModal>
     </div>
   );
 }

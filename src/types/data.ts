@@ -165,6 +165,16 @@ export interface CloudflareAdmin {
   pass: string;
 }
 
+export interface GuacamoleHost {
+  Client: string;
+  "Cloud Name": string;
+  IP?: string;
+  "Hard Coded IP"?: string;
+  "Admin username"?: string;
+  Password?: string;
+  Notes?: string;
+}
+
 // Combined data types for views
 export interface WorkstationUserFusion extends Workstation {
   UserName?: string;
@@ -244,5 +254,9 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
   cloudflareAdmins: {
     fileName: "Cloudflare_Admins.xlsx",
     sheetName: "CF Admins",
+  },
+  guacamoleHosts: {
+    fileName: "GuacamoleHosts.xlsx",
+    sheetName: "Sheet1",
   },
 };

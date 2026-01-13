@@ -9,7 +9,7 @@ async function handler(request: AuthenticatedRequest) {
     }
 
     // Get full user details from database
-    const user = findUserById(request.user.userId);
+    const user = await findUserById(request.user.userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
