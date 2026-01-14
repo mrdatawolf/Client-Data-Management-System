@@ -23,9 +23,16 @@ export default function DashboardPage() {
   });
   const [loadingData, setLoadingData] = useState(false);
   const [guacamoleHosts, setGuacamoleHosts] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [containers, setContainers] = useState<any[]>([]);
+  const [vms, setVms] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [domains, setDomains] = useState<any[]>([]);
+  const [cameras, setCameras] = useState<any[]>([]);
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
+  const [miscTab, setMiscTab] = useState<'services' | 'domains' | 'cameras' | 'documents'>('services');
 
   // Extract data fetching into reusable function
   const fetchClientData = () => {
@@ -40,9 +47,15 @@ export default function DashboardPage() {
       fetch(`/api/data/workstations-users?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/managed-info?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/admin-credentials?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/guacamole?client=${selectedClient}`).then(res => res.json())
+      fetch(`/api/data/guacamole?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/devices?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/containers?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/vms?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/services?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/domains?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, servicesData, domainsData, camerasData]) => {
         console.log("Admin credentials response:", adminData); // Debug log
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
@@ -55,6 +68,12 @@ export default function DashboardPage() {
           cloudflareAdmins: adminData.cloudflareAdmins || []
         });
         setGuacamoleHosts(guacData.data || []);
+        setDevices(devicesData.data || []);
+        setContainers(containersData.data || []);
+        setVms(vmsData.data || []);
+        setServices(servicesData.data || []);
+        setDomains(domainsData.data || []);
+        setCameras(camerasData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -70,6 +89,12 @@ export default function DashboardPage() {
           cloudflareAdmins: []
         });
         setGuacamoleHosts([]);
+        setDevices([]);
+        setContainers([]);
+        setVms([]);
+        setServices([]);
+        setDomains([]);
+        setCameras([]);
         setLoadingData(false);
       });
   };
@@ -89,8 +114,19 @@ export default function DashboardPage() {
     fetch("/api/data/clients")
       .then(res => res.json())
       .then(data => {
-        setClients(data.clients || []);
+        const clientList = data.clients || [];
+        setClients(clientList);
         setLoading(false);
+
+        // Set default company if specified in env and not already selected
+        const defaultCompany = process.env.NEXT_PUBLIC_DEFAULT_COMPANY;
+        if (defaultCompany && !selectedClient) {
+          // Check if the default company exists in the client list
+          const companyExists = clientList.some((c: any) => c.value === defaultCompany);
+          if (companyExists) {
+            setSelectedClient(defaultCompany);
+          }
+        }
       })
       .catch(err => {
         console.error("Failed to load clients:", err);
@@ -113,6 +149,12 @@ export default function DashboardPage() {
         acronisBackups: [],
         cloudflareAdmins: []
       });
+      setDevices([]);
+      setContainers([]);
+      setVms([]);
+      setServices([]);
+      setDomains([]);
+      setCameras([]);
     }
   }, [selectedClient]);
 
@@ -996,32 +1038,227 @@ export default function DashboardPage() {
       {/* Navigation Button Modals */}
       <FullPageModal
         isOpen={openModal === 'misc'}
-        onClose={() => setOpenModal(null)}
+        onClose={() => {
+          setOpenModal(null);
+          setMiscTab('services');
+        }}
         title="Miscellaneous"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
-            Miscellaneous Information
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
-            Content coming soon...
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Tab Navigation */}
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
+            <button
+              onClick={() => setMiscTab('services')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderBottom: miscTab === 'services' ? '3px solid #3b82f6' : '3px solid transparent',
+                backgroundColor: miscTab === 'services' ? '#eff6ff' : 'transparent',
+                color: miscTab === 'services' ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: miscTab === 'services' ? '600' : '400',
+                fontSize: '0.9375rem',
+                transition: 'all 0.15s'
+              }}
+            >
+              Services ({services.length})
+            </button>
+            <button
+              onClick={() => setMiscTab('domains')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderBottom: miscTab === 'domains' ? '3px solid #3b82f6' : '3px solid transparent',
+                backgroundColor: miscTab === 'domains' ? '#eff6ff' : 'transparent',
+                color: miscTab === 'domains' ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: miscTab === 'domains' ? '600' : '400',
+                fontSize: '0.9375rem',
+                transition: 'all 0.15s'
+              }}
+            >
+              Domains ({domains.length})
+            </button>
+            <button
+              onClick={() => setMiscTab('cameras')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderBottom: miscTab === 'cameras' ? '3px solid #3b82f6' : '3px solid transparent',
+                backgroundColor: miscTab === 'cameras' ? '#eff6ff' : 'transparent',
+                color: miscTab === 'cameras' ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: miscTab === 'cameras' ? '600' : '400',
+                fontSize: '0.9375rem',
+                transition: 'all 0.15s'
+              }}
+            >
+              Cameras ({cameras.length})
+            </button>
+            <button
+              onClick={() => setMiscTab('documents')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderBottom: miscTab === 'documents' ? '3px solid #3b82f6' : '3px solid transparent',
+                backgroundColor: miscTab === 'documents' ? '#eff6ff' : 'transparent',
+                color: miscTab === 'documents' ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: miscTab === 'documents' ? '600' : '400',
+                fontSize: '0.9375rem',
+                transition: 'all 0.15s'
+              }}
+            >
+              Documents
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            {miscTab === 'services' && (
+              <DataTable
+                data={services}
+                columns={[
+                  { key: 'Service', label: 'Service', sortable: true },
+                  { key: 'Username', label: 'Username', sortable: true },
+                  { key: 'Password', label: 'Password', type: 'password', sortable: false },
+                  { key: 'Host / URL', label: 'Host/URL', sortable: true },
+                  { key: 'Date of last known change', label: 'Last Changed', sortable: true },
+                  { key: 'Notes', label: 'Notes', sortable: true },
+                ]}
+                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Service)}
+                onDelete={(row) => confirm(`Delete ${row.Service}? (mockup)`) && alert('Deleted (mockup)')}
+                onAdd={() => alert('Add New Service (mockup)')}
+                enablePasswordMasking={true}
+                enableSearch={true}
+                enableExport={true}
+              />
+            )}
+
+            {miscTab === 'domains' && (
+              <DataTable
+                data={domains}
+                columns={[
+                  { key: 'Domain Name', label: 'Domain Name', sortable: true },
+                  { key: 'Alt Domain', label: 'Alternative Domain', sortable: true },
+                ]}
+                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row['Domain Name'])}
+                onDelete={(row) => confirm(`Delete ${row['Domain Name']}? (mockup)`) && alert('Deleted (mockup)')}
+                onAdd={() => alert('Add New Domain (mockup)')}
+                enablePasswordMasking={false}
+                enableSearch={true}
+                enableExport={true}
+              />
+            )}
+
+            {miscTab === 'cameras' && (
+              <DataTable
+                data={cameras}
+                columns={[
+                  { key: 'Name', label: 'Name', sortable: true },
+                  { key: 'Vendor', label: 'Vendor', sortable: true },
+                  { key: 'Model', label: 'Model', sortable: true },
+                  { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
+                  { key: 'Howto Connect', label: 'Connection Method', sortable: true },
+                  { key: 'Login', label: 'Login', sortable: true },
+                  { key: 'Password', label: 'Password', type: 'password', sortable: false },
+                  { key: 'Host NVR', label: 'Host NVR', sortable: true },
+                  { key: 'Notes', label: 'Notes', sortable: true },
+                  { key: 'Notes 2', label: 'Notes 2', sortable: true },
+                ]}
+                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+                onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+                onAdd={() => alert('Add New Camera (mockup)')}
+                enablePasswordMasking={true}
+                enableSearch={true}
+                enableExport={true}
+              />
+            )}
+
+            {miscTab === 'documents' && (
+              <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
+                    Client-Specific Document
+                  </h3>
+                  <p style={{ fontSize: '0.9375rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+                    Download the miscellaneous Excel file for {selectedClient}. This file contains additional client-specific data and documentation.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const downloadUrl = `/api/data/misc/${selectedClient}`;
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `${selectedClient}.xlsx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  style={{
+                    padding: '0.75rem 2rem',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    transition: 'all 0.15s',
+                    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                >
+                  📥 Download {selectedClient}.xlsx
+                </button>
+
+                <div style={{
+                  marginTop: '2rem',
+                  padding: '1rem',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  color: '#6b7280',
+                  maxWidth: '500px'
+                }}>
+                  <strong>Note:</strong> This file is stored as a BLOB in the database and contains miscellaneous information specific to this client.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </FullPageModal>
 
       <FullPageModal
         isOpen={openModal === 'devices'}
         onClose={() => setOpenModal(null)}
-        title="Devices"
+        title="Devices (Printers, Scanners, etc.)"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
-            Devices Information
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={devices}
+          columns={[
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'Machine Name / MAC', label: 'Machine Name/MAC', sortable: true },
+            { key: 'Service Tag', label: 'Service Tag', sortable: true },
+            { key: 'Login', label: 'Login', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'Note', label: 'Note', sortable: true },
+            { key: 'Note 1', label: 'Note 1', sortable: true },
+            { key: 'Note 2', label: 'Note 2', sortable: true },
+            { key: 'Note 3', label: 'Note 3', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+            { key: 'Asset ID', label: 'Asset ID', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New Device (mockup)')}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal
@@ -1029,14 +1266,21 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="Containers"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
-            Containers Information
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={containers}
+          columns={[
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'Port', label: 'Port', type: 'number', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New Container (mockup)')}
+          enablePasswordMasking={false}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal
@@ -1044,14 +1288,30 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="Virtual Machines"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
-            Virtual Machines Information
-          </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={vms}
+          columns={[
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Location', label: 'Location', sortable: true },
+            { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'Type', label: 'Type', sortable: true },
+            { key: 'Host', label: 'Host', sortable: true },
+            { key: 'Startup memory (GB)', label: 'Memory (GB)', type: 'number', sortable: true },
+            { key: 'Assigned cores', label: 'CPU Cores', sortable: true },
+            { key: 'Assigned To', label: 'Assigned To', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+            { key: 'Active', label: 'Active', sortable: true },
+            { key: 'Windows 11 Issue?', label: 'W11 Issue?', sortable: true },
+            { key: 'Needs W11', label: 'Needs W11', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New VM (mockup)')}
+          enablePasswordMasking={false}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal

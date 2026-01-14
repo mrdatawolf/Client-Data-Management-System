@@ -175,6 +175,83 @@ export interface GuacamoleHost {
   Notes?: string;
 }
 
+// Devices
+export interface Device {
+  client: string;
+  Name: string;
+  "IP address": string;
+  "Machine Name / MAC": string;
+  "Service Tag": string;
+  Login: string;
+  Password: string;
+  Note: string;
+  "Note 1": string;
+  "Note 2": string;
+  "Note 3": string;
+  Grouping: string;
+  "Asset ID": string;
+}
+
+// Containers
+export interface Container {
+  Client: string;
+  Name: string;
+  IP: string;
+  Port: number;
+  Grouping: string;
+}
+
+// Virtual Machines
+export interface VirtualMachine {
+  Client: string;
+  Location: string;
+  Name: string;
+  IP: string;
+  Type: string;
+  Host: string;
+  "Startup memory (GB)": number;
+  "Assigned cores": string;
+  "Assigned To": string;
+  Notes: string;
+  Grouping: string;
+  Active: number;
+  "Windows 11 Issue?": string;
+  "Needs W11": string;
+}
+
+// Services
+export interface Service {
+  Client: string;
+  Service: string;
+  Username: string;
+  Password: string;
+  "Date of last known change": number;
+  "Host / URL": string;
+  Notes: string;
+}
+
+// Domains
+export interface Domain {
+  Client: string;
+  "Domain Name": string;
+  "Alt Domain": string;
+}
+
+// Cameras
+export interface Camera {
+  Client: string;
+  Name: string;
+  Vendor: string;
+  Model: string;
+  IP: string;
+  "Howto Connect": string;
+  Login: string;
+  Password: string;
+  Notes: string;
+  "Notes 2": string;
+  "Host NVR": string;
+}
+
 // Combined data types for views
 export interface WorkstationUserFusion extends Workstation {
   UserName?: string;
@@ -209,7 +286,7 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
   companies: {
     fileName: "companies.xlsx",
     sheetName: "Companies",
-    path: process.env.COMPANIES_FILE_PATH,
+    // Note: path is handled dynamically in getExcelFilePath() using COMPANIES_FILE_PATH env var
   },
   core: {
     fileName: "Core.xlsx",
@@ -258,5 +335,29 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
   guacamoleHosts: {
     fileName: "GuacamoleHosts.xlsx",
     sheetName: "Sheet1",
+  },
+  devices: {
+    fileName: "Devices.xlsx",
+    sheetName: "Devices",
+  },
+  containers: {
+    fileName: "Containers.xlsx",
+    sheetName: "Containers",
+  },
+  vms: {
+    fileName: "VMs.xlsx",
+    sheetName: "Clients",
+  },
+  services: {
+    fileName: "Services.xlsx",
+    sheetName: "Services",
+  },
+  domains: {
+    fileName: "Domains.xlsx",
+    sheetName: "Sheet1",
+  },
+  cameras: {
+    fileName: "Cameras External.xlsx",
+    sheetName: "Cameras",
   },
 };

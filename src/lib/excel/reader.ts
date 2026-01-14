@@ -15,6 +15,11 @@ const CACHE_TTL = parseInt(process.env.EXCEL_CACHE_TTL || "300000", 10);
 export function getExcelFilePath(fileKey: keyof typeof EXCEL_FILES): string {
   const config = EXCEL_FILES[fileKey];
 
+  // Special handling for companies.xlsx - check COMPANIES_FILE_PATH at runtime
+  if (fileKey === "companies" && process.env.COMPANIES_FILE_PATH) {
+    return process.env.COMPANIES_FILE_PATH;
+  }
+
   // Use custom path if specified (e.g., for companies.xlsx)
   if (config.path) {
     return config.path;
@@ -173,12 +178,13 @@ export function sortData<T extends Record<string, any>>(
 
 /**
  * Get all unique clients from companies file
+ * Status meanings: 0=Good, 1=Billing Issue, 2=Must Contact Office
  */
 export function getAllClients(): Array<{ value: string; label: string }> {
   try {
     const companies = readExcelFile("companies");
     return companies
-      .filter((c: any) => c.Status === 1)
+      .filter((c: any) => c.Abbrv && c["Company Name"]) // Only filter out entries without abbreviation or name
       .map((c: any) => ({
         value: c.Abbrv,
         label: `${c["Company Name"]} (${c.Abbrv})`,

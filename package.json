@@ -18,7 +18,8 @@
     "electron:build": "node scripts/sync-version.js && electron-builder --config electron-builder.json",
     "build:all": "npm run build && npm run build:standalone && npm run electron:build",
     "db:reset": "tsx scripts/reset-database.ts",
-    "auth:init": "tsx scripts/init-auth-db.ts"
+    "auth:init": "tsx scripts/init-auth-db.ts",
+    "misc:migrate": "tsx scripts/migrate-misc.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",

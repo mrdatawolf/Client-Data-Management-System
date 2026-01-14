@@ -657,3 +657,40 @@ npm run build:all
 **Document Version:** 1.0
 **Last Updated:** 2026-01-12
 **Next Review:** After Phase 1 completion
+
+
+**Misc work:**
+
+SQLite Schema:
+
+
+CREATE TABLE misc_documents (
+  client TEXT PRIMARY KEY,
+  file_name TEXT NOT NULL,
+  file_data BLOB NOT NULL,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+This will store the entire Excel file as a BLOB, allowing you to:
+
+Retrieve and download the original file
+Display it in a viewer/editor later
+Keep the original structure intact
+Migration Script: (scripts/migrate-misc.ts)
+
+Scan the Examples/Misc/ folder for .xlsx files
+Read each file as binary
+Insert into SQLite with client abbreviation (from filename)
+Delete the Misc folder after successful migration
+API Endpoint: (/api/data/misc?client=BT)
+
+Returns the BLOB as a downloadable file
+Or returns metadata about the misc document
+Next Steps:
+
+Please add the Examples/Misc/ folder with a couple example client files (e.g., BT.xlsx, AE.xlsx), and I'll:
+
+Examine their structure to understand what we're storing
+Build the migration script
+Create the API endpoint
+Update the dashboard to show/download these files
+Once you've added the folder, let me know and I'll get started!
