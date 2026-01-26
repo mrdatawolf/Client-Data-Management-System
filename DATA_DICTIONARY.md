@@ -15,6 +15,10 @@ This document describes all fields in the Excel-based data model.
 - [Admin Mitel Logins.xlsx](#admin-mitel-loginsxlsx)
 - [Acronis Backups.xlsx](#acronis-backupsxlsx)
 - [Cloudflare_Admins.xlsx](#cloudflare_adminsxlsx)
+- [VMs.xlsx](#vmsxlsx)
+- [Containers.xlsx](#containersxlsx)
+- [Daemons.xlsx](#daemonsxlsx)
+- [GuacamoleHosts.xlsx](#guacamolehostsxlsx)
 
 ---
 
@@ -67,6 +71,13 @@ Ace Engineering, AE, ONSITE, 1
 | On Landing Page | Integer | Show on landing page | 1 | No | 1 = Show, 0 = Hide, featured items |
 | Grouping | String | Custom grouping | Network | No | For filtering/organization |
 | Asset ID | String | Internal asset tracking ID | BT-SVR-001 | No | Company asset number |
+| Cores | Integer | Number of CPU cores | 8 | No | Host server cores for resource tracking |
+| Ram (GB) | Integer | RAM in gigabytes | 32 | No | Host server RAM for resource tracking |
+| Inactive | Integer | Inactive status | 0 | No | 1 = Inactive, 0 = Active |
+| RDP? | Integer | Show RDP button | 1 | No | 1 = Show RDP connection button |
+| VNC? | Integer | Show VNC button | 0 | No | 1 = Show VNC connection button |
+| SSH? | Integer | Show SSH button | 1 | No | 1 = Show SSH connection button |
+| Web? | Integer | Show Web button | 0 | No | 1 = Show Web UI connection button |
 
 **Relationships:**
 - `Client` → companies.Abbrv
@@ -376,6 +387,110 @@ Credentials for Cloudflare DNS, CDN, and security services management.
 
 ---
 
+## VMs.xlsx
+
+**Location:** `S:\PBIData\NetDoc\Manual\VMs.xlsx`
+**Sheet Name:** `Clients`
+**Purpose:** Virtual machine inventory
+
+| Field | Type | Description | Example | Required | Notes |
+|-------|------|-------------|---------|----------|-------|
+| Client | String | Company abbreviation | BT | Yes | **Foreign Key** → companies.Abbrv |
+| Location | String | Physical location | Office | No | Where the host is located |
+| Name | String | VM name | DC01 | Yes | Virtual machine name |
+| IP | String | IP address | 192.168.1.10 | No | VM IP address |
+| Type | String | VM type/OS | Server 2019 | No | Operating system or purpose |
+| Host | String | Host server name | HV-SERVER01 | No | Physical host running the VM |
+| Startup memory (GB) | Number | RAM allocated | 8 | No | Memory in GB |
+| Assigned cores | String | CPU cores | 4 | No | Number of virtual CPUs |
+| Assigned To | String | Primary user | IT Department | No | Who uses this VM |
+| Notes | String | Additional notes | Domain Controller | No | Free-form text |
+| Grouping | String | Custom grouping | Production | No | For filtering |
+| Active | Integer | Active status | 1 | No | 1 = Active, 0 = Inactive |
+| Windows 11 Issue? | String | W11 compatibility | Yes | No | Windows 11 issues |
+| Needs W11 | String | Needs upgrade | No | No | Needs Windows 11 upgrade |
+| Startup Notes | String | Startup instructions | Start after DC02 | No | Special startup procedures |
+
+**Relationships:**
+- `Client` → companies.Abbrv
+- `Host` → Core.Name (soft reference)
+
+---
+
+## Containers.xlsx
+
+**Location:** `S:\PBIData\NetDoc\Manual\Containers.xlsx`
+**Sheet Name:** `Containers`
+**Purpose:** Docker/container inventory
+
+| Field | Type | Description | Example | Required | Notes |
+|-------|------|-------------|---------|----------|-------|
+| Client | String | Company abbreviation | BT | Yes | **Foreign Key** → companies.Abbrv |
+| Name | String | Container name | nginx-proxy | Yes | Container/service name |
+| IP | String | IP address | 192.168.1.50 | No | Container IP address |
+| Port | Integer | Service port | 8080 | No | Primary exposed port |
+| Grouping | String | Custom grouping | Web Services | No | For filtering |
+| Startup Notes | String | Startup instructions | Depends on redis | No | Special startup procedures |
+
+**Relationships:**
+- `Client` → companies.Abbrv
+
+**Notes:**
+- Containers are matched to hosts by IP prefix (same subnet)
+- Default resource allocation: 0 cores, 1GB RAM (configurable via env vars)
+
+---
+
+## Daemons.xlsx
+
+**Location:** `S:\PBIData\NetDoc\Manual\Daemons.xlsx`
+**Sheet Name:** `Sheet1`
+**Purpose:** Self-contained application servers (background services)
+
+| Field | Type | Description | Example | Required | Notes |
+|-------|------|-------------|---------|----------|-------|
+| Client | String | Company abbreviation | BT | Yes | **Foreign Key** → companies.Abbrv |
+| Location | String | Physical location | Office | No | Where the service runs |
+| Name | String | Daemon/service name | PrintServer | Yes | Application name |
+| IP | String | IP address | 192.168.1.100 | No | Service IP address |
+| Host | String | Host server name | APP-SERVER01 | No | Server running the daemon |
+| User | String | Service account | svc_print | No | User account running service |
+| Notes | String | Additional notes | Manages printers | No | Free-form text |
+| Inactive | Integer | Inactive status | 0 | No | 1 = Inactive, 0 = Active |
+| Startup Notes | String | Startup instructions | Start after DB | No | Special startup procedures |
+
+**Relationships:**
+- `Client` → companies.Abbrv
+- `Host` → Core.Name (soft reference)
+
+**Notes:**
+- Daemons are self-contained application servers
+- Default resource allocation: 1 core, 2GB RAM (configurable via env vars)
+- Matched to hosts by Host field or IP prefix
+
+---
+
+## GuacamoleHosts.xlsx
+
+**Location:** `S:\PBIData\NetDoc\Manual\GuacamoleHosts.xlsx`
+**Sheet Name:** `Sheet1`
+**Purpose:** Apache Guacamole remote access URLs
+
+| Field | Type | Description | Example | Required | Notes |
+|-------|------|-------------|---------|----------|-------|
+| Client | String | Company abbreviation | BT | Yes | **Foreign Key** → companies.Abbrv |
+| Cloud Name | String | Guacamole instance name | BT-Guac | No | Display name |
+| IP | String | Guacamole server IP | 10.0.0.50 | No | Server IP address |
+| Hard Coded IP | String | Override IP | 192.168.1.50 | No | Alternative IP if different |
+| Admin username | String | Admin login | admin | No | Guacamole admin username |
+| Password | String | Admin password | ●●●●●● | No | **SENSITIVE** |
+| Notes | String | Additional notes | Primary access | No | Free-form text |
+
+**Relationships:**
+- `Client` → companies.Abbrv
+
+---
+
 ## Field Type Reference
 
 ### Data Types
@@ -561,6 +676,8 @@ The following fields contain **highly sensitive** data and require special handl
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-12 | Initial documentation based on sample Excel files |
+| 1.1 | 2026-01-26 | Added VMs.xlsx, Containers.xlsx, Daemons.xlsx, GuacamoleHosts.xlsx documentation |
+| 1.2 | 2026-01-26 | Added Core.xlsx fields: Cores, Ram (GB), Inactive, RDP?, VNC?, SSH?, Web? |
 
 ---
 
@@ -579,22 +696,30 @@ companies.Abbrv (PRIMARY KEY)
   ├── Admin Emails.Client
   ├── Admin Mitel Logins.Client
   ├── Acronis Backups.Client
-  └── Cloudflare_Admins.Client
+  ├── Cloudflare_Admins.Client
+  ├── VMs.Client
+  ├── Containers.Client
+  ├── Daemons.Client
+  └── GuacamoleHosts.Client
 ```
 
 ### Tables Sorted by Size (Typical)
 1. Core.xlsx (Infrastructure) - Most records
-2. Users.xlsx
-3. Workstations.xlsx
-4. Emails.xlsx
-5. External_Info.xlsx
-6. Managed_Info.xlsx
-7. Phone Numbers.xlsx
-8. Admin Emails.xlsx
-9. Admin Mitel Logins.xlsx
-10. Acronis Backups.xlsx
-11. Cloudflare_Admins.xlsx
-12. companies.xlsx (Master - fewest records)
+2. VMs.xlsx (Virtual Machines)
+3. Users.xlsx
+4. Workstations.xlsx
+5. Emails.xlsx
+6. External_Info.xlsx
+7. Containers.xlsx
+8. Daemons.xlsx
+9. Managed_Info.xlsx
+10. Phone Numbers.xlsx
+11. Admin Emails.xlsx
+12. Admin Mitel Logins.xlsx
+13. Acronis Backups.xlsx
+14. Cloudflare_Admins.xlsx
+15. GuacamoleHosts.xlsx
+16. companies.xlsx (Master - fewest records)
 
 ### Required Fields Summary
 - **All tables:** Client (except companies.xlsx)

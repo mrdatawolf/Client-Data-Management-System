@@ -7,7 +7,9 @@
       "Bash(findstr:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)"
     ]
   }
 }

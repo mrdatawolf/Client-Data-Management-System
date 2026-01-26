@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable } from "@/components/DataTable";
+import { HostGroupedView } from "@/components/HostGroupedView";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -166,19 +168,19 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f3f4f6' }}>
+    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       {/* Compact Header */}
-      <header style={{ backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', flexShrink: 0 }}>
-        <div style={{ padding: '0.5rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+      <header className="bg-white dark:bg-gray-800 shadow-sm flex-shrink-0">
+        <div className="px-4 py-2 flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 m-0">
               Infrastructure Dashboard
             </h1>
             {/* Client Selector in Header */}
@@ -187,14 +189,7 @@ export default function DashboardPage() {
               value={selectedClient}
               onChange={(e) => setSelectedClient(e.target.value)}
               disabled={loading}
-              style={{
-                padding: '0.375rem 0.625rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.8125rem',
-                backgroundColor: 'white',
-                minWidth: '250px'
-              }}
+              className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-[250px]"
             >
               <option value="">
                 {loading ? 'Loading clients...' : 'Select a client'}
@@ -209,42 +204,24 @@ export default function DashboardPage() {
             <button
               onClick={fetchClientData}
               disabled={!selectedClient || loadingData}
-              style={{
-                padding: '0.375rem 0.625rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                backgroundColor: selectedClient && !loadingData ? 'white' : '#f3f4f6',
-                cursor: selectedClient && !loadingData ? 'pointer' : 'not-allowed',
-                fontSize: '1rem',
-                lineHeight: '1',
-                opacity: selectedClient && !loadingData ? 1 : 0.5,
-                transition: 'all 0.15s'
-              }}
+              className={`px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-base leading-none transition-all ${
+                selectedClient && !loadingData
+                  ? 'bg-white dark:bg-gray-700 cursor-pointer opacity-100 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50'
+              }`}
               title="Refresh data"
             >
-              ↻
+              <span className="text-gray-700 dark:text-gray-300">↻</span>
             </button>
 
             {/* Navigation Buttons */}
             {selectedClient && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem', borderLeft: '1px solid #d1d5db', paddingLeft: '1rem' }}>
+              <div className="flex gap-2 ml-4 border-l border-gray-300 dark:border-gray-600 pl-4">
                 {/* Guacamole Button - Opens URL from GuacamoleHosts */}
                 {guacamoleHosts.length > 0 && guacamoleHosts[0]?.['Cloud Name'] && (
                   <button
                     onClick={() => window.open(guacamoleHosts[0]['Cloud Name'], '_blank')}
-                    style={{
-                      padding: '0.375rem 0.75rem',
-                      border: '1px solid #3b82f6',
-                      borderRadius: '0.375rem',
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '0.8125rem',
-                      fontWeight: '500',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                    className="px-3 py-1.5 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-sm font-medium transition-all hover:bg-blue-600"
                     title={`Open ${guacamoleHosts[0]['Cloud Name'] || 'Guacamole'}`}
                   >
                     Guacamole
@@ -252,147 +229,51 @@ export default function DashboardPage() {
                 )}
                 <button
                   onClick={() => setOpenModal('misc')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Misc
                 </button>
                 <button
                   onClick={() => setOpenModal('devices')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Devices
                 </button>
                 <button
-                  onClick={() => setOpenModal('containers')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                >
-                  Containers
-                </button>
-                <button
                   onClick={() => setOpenModal('vms')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  VMs
+                  VMs/Containers
                 </button>
                 <button
                   onClick={() => setOpenModal('billing')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Billing
                 </button>
                 <button
                   onClick={() => setOpenModal('sonicwall')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Sonicwall
                 </button>
                 <button
                   onClick={() => setOpenModal('slgEmail')}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    border: '1px solid #6b7280',
-                    borderRadius: '0.375rem',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: '500',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   SLG Email Issues
                 </button>
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {user.username}
             </span>
             <button
               onClick={handleLogout}
-              style={{
-                padding: '0.375rem 0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                fontSize: '0.8125rem'
-              }}
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               Logout
             </button>
@@ -401,366 +282,269 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content - Full Width, No Scroll */}
-      <main style={{ flex: 1, overflow: 'hidden', padding: '0.75rem', display: 'flex', flexDirection: 'column' }}>
+      <main className="flex-1 overflow-hidden p-3 flex flex-col">
         {selectedClient ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', overflow: 'hidden' }}>
+          <div className="flex-1 flex flex-col gap-3 overflow-hidden">
 
             {/* Top Row: Core Infrastructure and Workstations + Users side by side - 70% height */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', height: '70%' }}>
+            <div className="grid grid-cols-2 gap-3 h-[70%]">
 
               {/* Core Infrastructure - 50% width, 70% height */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('coreInfra')}
-                  style={{
-                    fontSize: '0.9375rem',
-                    fontWeight: '600',
-                    padding: '0.625rem 1rem',
-                    margin: 0,
-                    borderBottom: '2px solid #3b82f6',
-                    color: '#1e40af',
-                    backgroundColor: '#eff6ff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#dbeafe';
-                    e.currentTarget.style.borderBottomColor = '#2563eb';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#eff6ff';
-                    e.currentTarget.style.borderBottomColor = '#3b82f6';
-                  }}
+                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-blue-500 text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 cursor-pointer transition-all text-center hover:bg-blue-100 dark:hover:bg-blue-900/50"
                 >
                   Core Infrastructure (Servers/Routers/Switches)
                 </h3>
                 {loadingData ? (
-                  <p style={{ color: '#6b7280', padding: '1rem', fontSize: '0.8125rem' }}>Loading...</p>
+                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
                 ) : coreInfra.length > 0 ? (
-                  <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                      <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 1 }}>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Location</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Name</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>IP Address</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Machine Name/MAC</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Description</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Login</th>
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Name</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Machine Name/MAC</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Description</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Login</th>
                         </tr>
                       </thead>
                       <tbody>
                         {coreInfra.map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.SubName || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Name || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem', fontFamily: 'monospace' }}>{item['IP address'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem', fontSize: '0.6875rem' }}>{item['Machine Name / MAC'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Description || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Login || '-'}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Name || '-'}</td>
+                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
+                            <td className="p-1.5 text-[0.6875rem] text-gray-900 dark:text-gray-100">{item['Machine Name / MAC'] || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Description || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Login || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: '#9ca3af', padding: '1rem', fontStyle: 'italic', fontSize: '0.8125rem' }}>No core infrastructure</p>
+                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No core infrastructure</p>
                 )}
               </div>
 
               {/* Workstations + Users - 50% width, 70% height */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('workstationsUsers')}
-                  style={{
-                    fontSize: '0.9375rem',
-                    fontWeight: '600',
-                    padding: '0.625rem 1rem',
-                    margin: 0,
-                    borderBottom: '2px solid #10b981',
-                    color: '#047857',
-                    backgroundColor: '#ecfdf5',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#d1fae5';
-                    e.currentTarget.style.borderBottomColor = '#059669';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#ecfdf5';
-                    e.currentTarget.style.borderBottomColor = '#10b981';
-                  }}
+                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 cursor-pointer transition-all text-center hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
                 >
                   Workstations + Users
                 </h3>
                 {loadingData ? (
-                  <p style={{ color: '#6b7280', padding: '1rem', fontSize: '0.8125rem' }}>Loading...</p>
+                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
                 ) : workstationsUsers.length > 0 ? (
-                  <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                      <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 1 }}>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Computer</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Location</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Username</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Full Name</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Email</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>OS</th>
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Full Name</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Email</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">OS</th>
                         </tr>
                       </thead>
                       <tbody>
                         {workstationsUsers.map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.computerName || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.location || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.username || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.fullName || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.email || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.os || '-'}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.location || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.username || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.fullName || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.email || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.os || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: '#9ca3af', padding: '1rem', fontStyle: 'italic', fontSize: '0.8125rem' }}>No workstations</p>
+                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No workstations</p>
                 )}
               </div>
             </div>
 
             {/* Bottom Row: External Info, Managed WAN, and Admin Credentials - 30% height */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', height: 'calc(30% - 0.75rem)' }}>
+            <div className="grid grid-cols-3 gap-3 h-[calc(30%-0.75rem)]">
 
               {/* External Info */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('externalInfo')}
-                  style={{
-                    fontSize: '0.9375rem',
-                    fontWeight: '600',
-                    padding: '0.625rem 1rem',
-                    margin: 0,
-                    borderBottom: '2px solid #f59e0b',
-                    color: '#b45309',
-                    backgroundColor: '#fffbeb',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fef3c7';
-                    e.currentTarget.style.borderBottomColor = '#d97706';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fffbeb';
-                    e.currentTarget.style.borderBottomColor = '#f59e0b';
-                  }}
+                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-amber-500 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-all text-center hover:bg-amber-100 dark:hover:bg-amber-900/50"
                 >
                   External Info (Firewalls/VPN)
                 </h3>
                 {loadingData ? (
-                  <p style={{ color: '#6b7280', padding: '1rem', fontSize: '0.8125rem' }}>Loading...</p>
+                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
                 ) : externalInfo.length > 0 ? (
-                  <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                      <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 1 }}>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Location</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Device Type</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>IP Address</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Connection</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Username</th>
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Device Type</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Connection</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
                         </tr>
                       </thead>
                       <tbody>
                         {externalInfo.map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.SubName || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item['Device Type'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem', fontFamily: 'monospace' }}>{item['IP address'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item['Connection Type'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Username || '-'}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
+                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Connection Type'] || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Username || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: '#9ca3af', padding: '1rem', fontStyle: 'italic', fontSize: '0.8125rem' }}>No external info</p>
+                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No external info</p>
                 )}
               </div>
 
               {/* Managed WAN Info */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('managedInfo')}
-                  style={{
-                    fontSize: '0.9375rem',
-                    fontWeight: '600',
-                    padding: '0.625rem 1rem',
-                    margin: 0,
-                    borderBottom: '2px solid #8b5cf6',
-                    color: '#6d28d9',
-                    backgroundColor: '#f5f3ff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#ede9fe';
-                    e.currentTarget.style.borderBottomColor = '#7c3aed';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f5f3ff';
-                    e.currentTarget.style.borderBottomColor = '#8b5cf6';
-                  }}
+                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-violet-500 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 cursor-pointer transition-all text-center hover:bg-violet-100 dark:hover:bg-violet-900/50"
                 >
                   Managed WAN Info (ISP)
                 </h3>
                 {loadingData ? (
-                  <p style={{ color: '#6b7280', padding: '1rem', fontSize: '0.8125rem' }}>Loading...</p>
+                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
                 ) : managedInfo.length > 0 ? (
-                  <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                      <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 1 }}>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Provider</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Type</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>IP 1</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>IP 2</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Account #</th>
-                          <th style={{ padding: '0.375rem 0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.6875rem' }}>Phone 1</th>
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Provider</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Type</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 1</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 2</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Account #</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Phone 1</th>
                         </tr>
                       </thead>
                       <tbody>
                         {managedInfo.map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Provider || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item.Type || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem', fontFamily: 'monospace' }}>{item['IP 1'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem', fontFamily: 'monospace' }}>{item['IP 2'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item['Account #'] || '-'}</td>
-                            <td style={{ padding: '0.375rem 0.5rem' }}>{item['Phone 1'] || '-'}</td>
+                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Provider || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Type || '-'}</td>
+                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 1'] || '-'}</td>
+                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 2'] || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Account #'] || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Phone 1'] || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: '#9ca3af', padding: '1rem', fontStyle: 'italic', fontSize: '0.8125rem' }}>No managed WAN info</p>
+                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No managed WAN info</p>
                 )}
               </div>
 
               {/* Admin Credentials Box (1x4 horizontal) */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.375rem', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)', padding: '0.5rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-2 flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('adminCredentials')}
-                  style={{
-                    fontSize: '0.8125rem',
-                    fontWeight: '600',
-                    padding: '0.5rem 0.75rem',
-                    margin: 0,
-                    marginBottom: '0.5rem',
-                    color: '#be123c',
-                    borderBottom: '2px solid #fb7185',
-                    backgroundColor: '#fff1f2',
-                    cursor: 'pointer',
-                    borderRadius: '0.25rem 0.25rem 0 0',
-                    transition: 'all 0.15s',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#ffe4e6';
-                    e.currentTarget.style.borderBottomColor = '#f43f5e';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fff1f2';
-                    e.currentTarget.style.borderBottomColor = '#fb7185';
-                  }}
+                  className="text-sm font-semibold px-3 py-2 m-0 mb-2 text-rose-700 dark:text-rose-300 border-b-2 border-rose-400 bg-rose-50 dark:bg-rose-900/30 cursor-pointer rounded-t transition-all text-center hover:bg-rose-100 dark:hover:bg-rose-900/50"
                 >
                   Admin Credentials
                 </h3>
                 {loadingData ? (
-                  <p style={{ color: '#6b7280', padding: '0.5rem', fontSize: '0.75rem' }}>Loading...</p>
+                  <p className="text-gray-500 dark:text-gray-400 p-2 text-xs">Loading...</p>
                 ) : (
-                  <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gridTemplateRows: '1fr', gap: '0.5rem', overflow: 'hidden' }}>
+                  <div className="flex-1 grid grid-cols-4 gap-2 overflow-hidden">
 
                     {/* Admin Emails - Compact Horizontal */}
-                    <div style={{ backgroundColor: '#fefce8', border: '1px solid #fde047', borderRadius: '0.25rem', padding: '0.25rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.625rem', fontWeight: '600', margin: 0, marginBottom: '0.125rem', color: '#854d0e' }}>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded p-1 flex flex-col overflow-hidden">
+                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-yellow-800 dark:text-yellow-300">
                         Emails ({adminCredentials.adminEmails.length})
                       </h4>
                       {adminCredentials.adminEmails.length > 0 ? (
-                        <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.5625rem' }}>
+                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
                           {adminCredentials.adminEmails.map((item: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: '0.125rem', paddingBottom: '0.125rem', borderBottom: idx < adminCredentials.adminEmails.length - 1 ? '1px solid #fde047' : 'none' }}>
-                              <div style={{ fontWeight: '500', color: '#854d0e', wordBreak: 'break-all', lineHeight: '1.1' }}>{item.Email || item.Name || '-'}</div>
-                              <div style={{ fontSize: '0.5rem', color: '#a16207' }}>Pwd: {item.Password || '-'}</div>
+                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.adminEmails.length - 1 ? 'border-b border-yellow-300 dark:border-yellow-700' : ''}`}>
+                              <div className="font-medium text-yellow-800 dark:text-yellow-300 break-all leading-tight">{item.Email || item.Name || '-'}</div>
+                              <div className="text-[0.5rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p style={{ fontSize: '0.5625rem', color: '#a16207', fontStyle: 'italic', margin: 0 }}>No data</p>
+                        <p className="text-[0.5625rem] text-yellow-700 dark:text-yellow-400 italic m-0">No data</p>
                       )}
                     </div>
 
                     {/* Mitel Logins - Compact Horizontal */}
-                    <div style={{ backgroundColor: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '0.25rem', padding: '0.25rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.625rem', fontWeight: '600', margin: 0, marginBottom: '0.125rem', color: '#1e40af' }}>
+                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded p-1 flex flex-col overflow-hidden">
+                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-blue-800 dark:text-blue-300">
                         Mitel ({adminCredentials.mitelLogins.length})
                       </h4>
                       {adminCredentials.mitelLogins.length > 0 ? (
-                        <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.5625rem' }}>
+                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
                           {adminCredentials.mitelLogins.map((item: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: '0.125rem', paddingBottom: '0.125rem', borderBottom: idx < adminCredentials.mitelLogins.length - 1 ? '1px solid #93c5fd' : 'none' }}>
-                              <div style={{ fontWeight: '500', color: '#1e40af', wordBreak: 'break-all', lineHeight: '1.1' }}>{item.Login || '-'}</div>
-                              <div style={{ fontSize: '0.5rem', color: '#1e3a8a' }}>Pwd: {item.Password || '-'}</div>
+                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
+                              <div className="font-medium text-blue-800 dark:text-blue-300 break-all leading-tight">{item.Login || '-'}</div>
+                              <div className="text-[0.5rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p style={{ fontSize: '0.5625rem', color: '#1e3a8a', fontStyle: 'italic', margin: 0 }}>No data</p>
+                        <p className="text-[0.5625rem] text-blue-900 dark:text-blue-400 italic m-0">No data</p>
                       )}
                     </div>
 
                     {/* Acronis Backups - Compact Horizontal */}
-                    <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.25rem', padding: '0.25rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.625rem', fontWeight: '600', margin: 0, marginBottom: '0.125rem', color: '#166534' }}>
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded p-1 flex flex-col overflow-hidden">
+                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-green-800 dark:text-green-300">
                         Acronis ({adminCredentials.acronisBackups.length})
                       </h4>
                       {adminCredentials.acronisBackups.length > 0 ? (
-                        <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.5625rem' }}>
+                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
                           {adminCredentials.acronisBackups.map((item: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: '0.125rem', paddingBottom: '0.125rem', borderBottom: idx < adminCredentials.acronisBackups.length - 1 ? '1px solid #86efac' : 'none' }}>
-                              <div style={{ fontWeight: '500', color: '#166534', wordBreak: 'break-all', lineHeight: '1.1' }}>{item.UserName || '-'}</div>
-                              <div style={{ fontSize: '0.5rem', color: '#15803d' }}>Pwd: {item.PW || '-'}</div>
+                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.acronisBackups.length - 1 ? 'border-b border-green-300 dark:border-green-700' : ''}`}>
+                              <div className="font-medium text-green-800 dark:text-green-300 break-all leading-tight">{item.UserName || '-'}</div>
+                              <div className="text-[0.5rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p style={{ fontSize: '0.5625rem', color: '#15803d', fontStyle: 'italic', margin: 0 }}>No data</p>
+                        <p className="text-[0.5625rem] text-green-700 dark:text-green-400 italic m-0">No data</p>
                       )}
                     </div>
 
                     {/* Cloudflare Admins - Compact Horizontal */}
-                    <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.25rem', padding: '0.25rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.625rem', fontWeight: '600', margin: 0, marginBottom: '0.125rem', color: '#991b1b' }}>
+                    <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded p-1 flex flex-col overflow-hidden">
+                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-red-800 dark:text-red-300">
                         Cloudflare ({adminCredentials.cloudflareAdmins.length})
                       </h4>
                       {adminCredentials.cloudflareAdmins.length > 0 ? (
-                        <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.5625rem' }}>
+                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
                           {adminCredentials.cloudflareAdmins.map((item: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: '0.125rem', paddingBottom: '0.125rem', borderBottom: idx < adminCredentials.cloudflareAdmins.length - 1 ? '1px solid #fca5a5' : 'none' }}>
-                              <div style={{ fontWeight: '500', color: '#991b1b', wordBreak: 'break-all', lineHeight: '1.1' }}>{item.username || '-'}</div>
-                              <div style={{ fontSize: '0.5rem', color: '#b91c1c' }}>Pwd: {item.pass || '-'}</div>
+                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.cloudflareAdmins.length - 1 ? 'border-b border-red-300 dark:border-red-700' : ''}`}>
+                              <div className="font-medium text-red-800 dark:text-red-300 break-all leading-tight">{item.username || '-'}</div>
+                              <div className="text-[0.5rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p style={{ fontSize: '0.5625rem', color: '#b91c1c', fontStyle: 'italic', margin: 0 }}>No data</p>
+                        <p className="text-[0.5625rem] text-red-700 dark:text-red-400 italic m-0">No data</p>
                       )}
                     </div>
 
@@ -770,12 +554,12 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'white', borderRadius: '0.375rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#6b7280' }}>
+          <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-800 rounded-md">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2 text-gray-500 dark:text-gray-400">
                 Select a client to view data
               </h2>
-              <p style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 Choose a client from the dropdown above
               </p>
             </div>
@@ -944,13 +728,13 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="Admin Credentials"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+        <div className="flex flex-col gap-6 h-full">
           {/* Admin Emails */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '2px solid #fde047', borderRadius: '0.5rem', overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#fef3c7', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '1rem', color: '#854d0e' }}>
+          <div className="flex-1 flex flex-col border-2 border-yellow-300 dark:border-yellow-700 rounded-lg overflow-hidden">
+            <div className="bg-yellow-100 dark:bg-yellow-900/50 px-4 py-3 font-semibold text-base text-yellow-800 dark:text-yellow-300">
               Admin Emails ({adminCredentials.adminEmails.length})
             </div>
-            <div style={{ flex: 1, overflow: 'hidden', padding: '1rem' }}>
+            <div className="flex-1 overflow-hidden p-4">
               <DataTable
                 data={adminCredentials.adminEmails}
                 columns={[
@@ -968,13 +752,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Row with Mitel, Acronis, Cloudflare */}
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+          <div className="flex-1 grid grid-cols-3 gap-4">
             {/* Mitel */}
-            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #93c5fd', borderRadius: '0.5rem', overflow: 'hidden' }}>
-              <div style={{ backgroundColor: '#dbeafe', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#1e40af' }}>
+            <div className="flex flex-col border-2 border-blue-300 dark:border-blue-700 rounded-lg overflow-hidden">
+              <div className="bg-blue-100 dark:bg-blue-900/50 px-4 py-3 font-semibold text-sm text-blue-800 dark:text-blue-300">
                 Mitel Logins ({adminCredentials.mitelLogins.length})
               </div>
-              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+              <div className="flex-1 overflow-hidden p-3">
                 <DataTable
                   data={adminCredentials.mitelLogins}
                   columns={[
@@ -991,11 +775,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Acronis */}
-            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #86efac', borderRadius: '0.5rem', overflow: 'hidden' }}>
-              <div style={{ backgroundColor: '#d1fae5', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#166534' }}>
+            <div className="flex flex-col border-2 border-green-300 dark:border-green-700 rounded-lg overflow-hidden">
+              <div className="bg-green-100 dark:bg-green-900/50 px-4 py-3 font-semibold text-sm text-green-800 dark:text-green-300">
                 Acronis Backups ({adminCredentials.acronisBackups.length})
               </div>
-              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+              <div className="flex-1 overflow-hidden p-3">
                 <DataTable
                   data={adminCredentials.acronisBackups}
                   columns={[
@@ -1012,11 +796,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Cloudflare */}
-            <div style={{ display: 'flex', flexDirection: 'column', border: '2px solid #fca5a5', borderRadius: '0.5rem', overflow: 'hidden' }}>
-              <div style={{ backgroundColor: '#fecaca', padding: '0.75rem 1rem', fontWeight: '600', fontSize: '0.875rem', color: '#991b1b' }}>
+            <div className="flex flex-col border-2 border-red-300 dark:border-red-700 rounded-lg overflow-hidden">
+              <div className="bg-red-100 dark:bg-red-900/50 px-4 py-3 font-semibold text-sm text-red-800 dark:text-red-300">
                 Cloudflare ({adminCredentials.cloudflareAdmins.length})
               </div>
-              <div style={{ flex: 1, overflow: 'hidden', padding: '0.75rem' }}>
+              <div className="flex-1 overflow-hidden p-3">
                 <DataTable
                   data={adminCredentials.cloudflareAdmins}
                   columns={[
@@ -1044,77 +828,53 @@ export default function DashboardPage() {
         }}
         title="Miscellaneous"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="flex flex-col h-full">
           {/* Tab Navigation */}
-          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
+          <div className="flex gap-2 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
             <button
               onClick={() => setMiscTab('services')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                borderBottom: miscTab === 'services' ? '3px solid #3b82f6' : '3px solid transparent',
-                backgroundColor: miscTab === 'services' ? '#eff6ff' : 'transparent',
-                color: miscTab === 'services' ? '#1e40af' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: miscTab === 'services' ? '600' : '400',
-                fontSize: '0.9375rem',
-                transition: 'all 0.15s'
-              }}
+              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
+                miscTab === 'services'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             >
               Services ({services.length})
             </button>
             <button
               onClick={() => setMiscTab('domains')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                borderBottom: miscTab === 'domains' ? '3px solid #3b82f6' : '3px solid transparent',
-                backgroundColor: miscTab === 'domains' ? '#eff6ff' : 'transparent',
-                color: miscTab === 'domains' ? '#1e40af' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: miscTab === 'domains' ? '600' : '400',
-                fontSize: '0.9375rem',
-                transition: 'all 0.15s'
-              }}
+              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
+                miscTab === 'domains'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             >
               Domains ({domains.length})
             </button>
             <button
               onClick={() => setMiscTab('cameras')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                borderBottom: miscTab === 'cameras' ? '3px solid #3b82f6' : '3px solid transparent',
-                backgroundColor: miscTab === 'cameras' ? '#eff6ff' : 'transparent',
-                color: miscTab === 'cameras' ? '#1e40af' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: miscTab === 'cameras' ? '600' : '400',
-                fontSize: '0.9375rem',
-                transition: 'all 0.15s'
-              }}
+              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
+                miscTab === 'cameras'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             >
               Cameras ({cameras.length})
             </button>
             <button
               onClick={() => setMiscTab('documents')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                borderBottom: miscTab === 'documents' ? '3px solid #3b82f6' : '3px solid transparent',
-                backgroundColor: miscTab === 'documents' ? '#eff6ff' : 'transparent',
-                color: miscTab === 'documents' ? '#1e40af' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: miscTab === 'documents' ? '600' : '400',
-                fontSize: '0.9375rem',
-                transition: 'all 0.15s'
-              }}
+              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
+                miscTab === 'documents'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             >
               Documents
             </button>
           </div>
 
           {/* Tab Content */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div className="flex-1 overflow-hidden">
             {miscTab === 'services' && (
               <DataTable
                 data={services}
@@ -1176,12 +936,12 @@ export default function DashboardPage() {
             )}
 
             {miscTab === 'documents' && (
-              <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-                <div style={{ textAlign: 'center', maxWidth: '600px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
+              <div className="p-8 flex flex-col items-center gap-6">
+                <div className="text-center max-w-[600px]">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     Client-Specific Document
                   </h3>
-                  <p style={{ fontSize: '0.9375rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+                  <p className="text-[0.9375rem] text-gray-500 dark:text-gray-400 mb-6">
                     Download the miscellaneous Excel file for {selectedClient}. This file contains additional client-specific data and documentation.
                   </p>
                 </div>
@@ -1196,33 +956,12 @@ export default function DashboardPage() {
                     link.click();
                     document.body.removeChild(link);
                   }}
-                  style={{
-                    padding: '0.75rem 2rem',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    transition: 'all 0.15s',
-                    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                  className="px-8 py-3 border-none rounded-lg bg-blue-500 text-white cursor-pointer text-base font-semibold transition-all shadow-sm hover:bg-blue-600"
                 >
-                  📥 Download {selectedClient}.xlsx
+                  Download {selectedClient}.xlsx
                 </button>
 
-                <div style={{
-                  marginTop: '2rem',
-                  padding: '1rem',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  color: '#6b7280',
-                  maxWidth: '500px'
-                }}>
+                <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-500 dark:text-gray-400 max-w-[500px]">
                   <strong>Note:</strong> This file is stored as a BLOB in the database and contains miscellaneous information specific to this client.
                 </div>
               </div>
@@ -1319,11 +1058,11 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="Billing"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+        <div className="text-center p-12">
+          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
             Billing Information
           </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+          <p className="text-gray-400 dark:text-gray-500 text-base">
             Content coming soon...
           </p>
         </div>
@@ -1334,11 +1073,11 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="Sonicwall"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+        <div className="text-center p-12">
+          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
             Sonicwall Information
           </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+          <p className="text-gray-400 dark:text-gray-500 text-base">
             Content coming soon...
           </p>
         </div>
@@ -1349,11 +1088,11 @@ export default function DashboardPage() {
         onClose={() => setOpenModal(null)}
         title="SLG Email Issues"
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#6b7280', marginBottom: '1rem' }}>
+        <div className="text-center p-12">
+          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
             SLG Email Issues
           </h3>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+          <p className="text-gray-400 dark:text-gray-500 text-base">
             Content coming soon...
           </p>
         </div>

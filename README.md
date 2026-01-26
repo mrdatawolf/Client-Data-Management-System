@@ -174,10 +174,25 @@ Each modal includes a fully-featured data table with:
   - Edit button per row (blue)
   - Delete button per row (red with confirmation)
 
+### Host Grouped View (VMs, Containers, Daemons)
+- **Grouped by host** - VMs, containers, and daemons organized under their host servers
+- **Resource allocation tracking** - Shows allocated cores and RAM vs host capacity
+- **OS overhead calculation** - Accounts for Windows (4GB) vs Linux (1GB) OS memory
+- **Card-based layout** - Visual cards for each VM, container, and daemon
+- **Connection buttons** - RDP, VNC, SSH, Web buttons based on Core.xlsx flags
+- **Startup Notes** - Special instructions displayed on cards
+- **Host credentials modal** - Quick access to host login info
+- **Configurable defaults** via environment variables:
+  - Container resources (default: 0 cores, 1GB RAM)
+  - Daemon resources (default: 1 core, 2GB RAM)
+  - OS overhead (Windows: 4GB, Other: 1GB)
+
 ### Data Sections
 1. **Core Infrastructure** (Blue) - Servers, routers, switches
-   - 14 columns including IP addresses, login credentials, service tags
+   - 14+ columns including IP addresses, login credentials, service tags
    - Password masking for Login, Password, Alt Login, Alt Passwd
+   - Resource info: Cores, RAM (GB), Inactive status
+   - Connection flags: RDP?, VNC?, SSH?, Web?
 
 2. **Workstations + Users** (Green) - PC inventory and user accounts
    - 10 columns combining workstation and user data
@@ -199,6 +214,12 @@ Each modal includes a fully-featured data table with:
      - Cloudflare Admins (bottom right) - Username, Password
    - Each section independently searchable/sortable
 
+6. **Virtual Machines, Containers & Daemons**
+   - VMs from VMs.xlsx with host, resources, type
+   - Containers from Containers.xlsx with ports
+   - Daemons from Daemons.xlsx (self-contained app servers)
+   - All grouped by host server with resource tracking
+
 ### Authentication
 - JWT-based login system
 - User session management
@@ -208,8 +229,9 @@ Each modal includes a fully-featured data table with:
 ### Components
 - **DataTable** - Reusable table component with search, sort, filter, pagination
 - **FullPageModal** - Modal overlay system with keyboard shortcuts (ESC to close)
+- **HostGroupedView** - VM/Container/Daemon grouped display with resource tracking
 - **Responsive design** - Works on desktop, tablet, mobile
 
 **Status:** Phase 1 Complete - Full read-only dashboard with CRUD mockups
 **Next Phase:** Implement actual write operations to Excel files
-**Last Updated:** 2026-01-13
+**Last Updated:** 2026-01-26

@@ -19,6 +19,7 @@
     "build:all": "npm run build && npm run build:standalone && npm run electron:build",
     "db:reset": "tsx scripts/reset-database.ts",
     "auth:init": "tsx scripts/init-auth-db.ts",
+    "preferences:init": "tsx scripts/init-preferences-db.ts",
     "misc:migrate": "tsx scripts/migrate-misc.ts"
   },
   "dependencies": {
