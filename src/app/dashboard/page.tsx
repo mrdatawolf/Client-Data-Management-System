@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [devices, setDevices] = useState<any[]>([]);
   const [containers, setContainers] = useState<any[]>([]);
   const [vms, setVms] = useState<any[]>([]);
+  const [daemons, setDaemons] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [domains, setDomains] = useState<any[]>([]);
   const [cameras, setCameras] = useState<any[]>([]);
@@ -53,11 +54,12 @@ export default function DashboardPage() {
       fetch(`/api/data/devices?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/containers?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/vms?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/daemons?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/services?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/domains?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, servicesData, domainsData, camerasData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData]) => {
         console.log("Admin credentials response:", adminData); // Debug log
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
@@ -73,6 +75,7 @@ export default function DashboardPage() {
         setDevices(devicesData.data || []);
         setContainers(containersData.data || []);
         setVms(vmsData.data || []);
+        setDaemons(daemonsData.data || []);
         setServices(servicesData.data || []);
         setDomains(domainsData.data || []);
         setCameras(camerasData.data || []);
@@ -94,6 +97,7 @@ export default function DashboardPage() {
         setDevices([]);
         setContainers([]);
         setVms([]);
+        setDaemons([]);
         setServices([]);
         setDomains([]);
         setCameras([]);
@@ -1001,55 +1005,15 @@ export default function DashboardPage() {
       </FullPageModal>
 
       <FullPageModal
-        isOpen={openModal === 'containers'}
-        onClose={() => setOpenModal(null)}
-        title="Containers"
-      >
-        <DataTable
-          data={containers}
-          columns={[
-            { key: 'Name', label: 'Name', sortable: true },
-            { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
-            { key: 'Port', label: 'Port', type: 'number', sortable: true },
-            { key: 'Grouping', label: 'Grouping', sortable: true },
-          ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Container (mockup)')}
-          enablePasswordMasking={false}
-          enableSearch={true}
-          enableExport={true}
-        />
-      </FullPageModal>
-
-      <FullPageModal
         isOpen={openModal === 'vms'}
         onClose={() => setOpenModal(null)}
-        title="Virtual Machines"
+        title="Virtual Machines, Containers & Daemons"
       >
-        <DataTable
-          data={vms}
-          columns={[
-            { key: 'Name', label: 'Name', sortable: true },
-            { key: 'Location', label: 'Location', sortable: true },
-            { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
-            { key: 'Type', label: 'Type', sortable: true },
-            { key: 'Host', label: 'Host', sortable: true },
-            { key: 'Startup memory (GB)', label: 'Memory (GB)', type: 'number', sortable: true },
-            { key: 'Assigned cores', label: 'CPU Cores', sortable: true },
-            { key: 'Assigned To', label: 'Assigned To', sortable: true },
-            { key: 'Notes', label: 'Notes', sortable: true },
-            { key: 'Grouping', label: 'Grouping', sortable: true },
-            { key: 'Active', label: 'Active', sortable: true },
-            { key: 'Windows 11 Issue?', label: 'W11 Issue?', sortable: true },
-            { key: 'Needs W11', label: 'Needs W11', sortable: true },
-          ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New VM (mockup)')}
-          enablePasswordMasking={false}
-          enableSearch={true}
-          enableExport={true}
+        <HostGroupedView
+          vms={vms}
+          containers={containers}
+          daemons={daemons}
+          coreInfra={coreInfra}
         />
       </FullPageModal>
 
