@@ -44,9 +44,12 @@ export function FullPageModal({ isOpen, onClose, title, children }: FullPageModa
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         zIndex: 50,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1rem'
+        paddingTop: '3em',
+        paddingLeft: '1rem',
+        paddingRight: '1rem',
+        paddingBottom: '1rem'
       }}
       onClick={onClose}
     >
@@ -56,9 +59,8 @@ export function FullPageModal({ isOpen, onClose, title, children }: FullPageModa
           borderRadius: '0.5rem',
           boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
           width: '100%',
-          height: '100%',
           maxWidth: '100%',
-          maxHeight: '100%',
+          maxHeight: 'calc(100vh - 4em)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'

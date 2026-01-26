@@ -25,6 +25,13 @@ export interface CoreInfrastructure {
   "On Landing Page": number;
   Grouping: string;
   "Asset ID": string;
+  Cores?: number;
+  "Ram (GB)"?: number;
+  Inactive?: number;
+  "RDP?"?: number;
+  "VNC?"?: number;
+  "SSH?"?: number;
+  "Web?"?: number;
 }
 
 // User accounts
@@ -199,6 +206,7 @@ export interface Container {
   IP: string;
   Port: number;
   Grouping: string;
+  "Startup Notes"?: string;
 }
 
 // Virtual Machines
@@ -217,6 +225,20 @@ export interface VirtualMachine {
   Active: number;
   "Windows 11 Issue?": string;
   "Needs W11": string;
+  "Startup Notes"?: string;
+}
+
+// Daemons (self-contained application servers)
+export interface Daemon {
+  Client: string;
+  Location: string;
+  Name: string;
+  IP: string;
+  Host: string;
+  User: string;
+  Notes: string;
+  Inactive: number;
+  "Startup Notes"?: string;
 }
 
 // Services
@@ -347,6 +369,10 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
   vms: {
     fileName: "VMs.xlsx",
     sheetName: "Clients",
+  },
+  daemons: {
+    fileName: "Daemons.xlsx",
+    sheetName: "Sheet1",
   },
   services: {
     fileName: "Services.xlsx",
