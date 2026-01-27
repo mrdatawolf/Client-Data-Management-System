@@ -93,6 +93,28 @@ if (!fs.existsSync(distDatabasesDir)) {
   fs.mkdirSync(distDatabasesDir, { recursive: true });
 }
 
+// Create data directory for auth.db
+console.log('Creating data directory...');
+const distDataDir = path.join(distDir, 'data');
+if (!fs.existsSync(distDataDir)) {
+  fs.mkdirSync(distDataDir, { recursive: true });
+}
+
+// Copy Examples folder if it exists (for testing)
+const examplesDir = path.join(__dirname, '..', 'Examples');
+const distExamplesDir = path.join(distDir, 'Examples');
+if (fs.existsSync(examplesDir)) {
+  console.log('Copying Examples folder...');
+  copyDir(examplesDir, distExamplesDir);
+}
+
+// Copy data folder (auth.db) if it exists
+const dataDir = path.join(__dirname, '..', 'data');
+if (fs.existsSync(dataDir)) {
+  console.log('Copying data folder (auth database)...');
+  copyDir(dataDir, distDataDir);
+}
+
 // Create .env file with production settings
 console.log('Creating .env file...');
 const envContent = `# Server Configuration
@@ -105,9 +127,20 @@ JWT_SECRET=your-secret-key-change-in-production
 # Node Environment
 NODE_ENV=production
 
-# Excel Data Paths - Update these for your environment
+# Authentication Database Path
+AUTH_DB_PATH=./data/auth.db
+
+# Excel Data Paths
+# ===========================================
+# IMPORTANT: Update these paths for production!
+# ===========================================
+# For local testing (Examples folder included):
 EXCEL_BASE_PATH=./Examples
 COMPANIES_FILE_PATH=./Examples/companies.xlsx
+
+# For network drive (uncomment and modify):
+# EXCEL_BASE_PATH=S:/PBIData/NetDoc/Manual
+# COMPANIES_FILE_PATH=S:/PBIData/Biztech/companies.xlsx
 `;
 fs.writeFileSync(path.join(distDir, '.env'), envContent);
 

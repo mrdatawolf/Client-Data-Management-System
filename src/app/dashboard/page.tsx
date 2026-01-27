@@ -219,9 +219,11 @@ export default function DashboardPage() {
         acronisBackups: [],
         cloudflareAdmins: []
       });
+      setGuacamoleHosts([]);
       setDevices([]);
       setContainers([]);
       setVms([]);
+      setDaemons([]);
       setServices([]);
       setDomains([]);
       setCameras([]);

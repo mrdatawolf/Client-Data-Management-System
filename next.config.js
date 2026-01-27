@@ -4,6 +4,9 @@ const nextConfig = {
   // Standalone output for packaging as executable
   output: 'standalone',
 
+  // Externalize packages with native bindings that don't bundle well
+  serverExternalPackages: ['@libsql/client'],
+
   // Exclude large directories from standalone build to prevent size bloat
   outputFileTracingExcludes: {
     '*': [
