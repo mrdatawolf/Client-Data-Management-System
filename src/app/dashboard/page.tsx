@@ -552,7 +552,7 @@ export default function DashboardPage() {
                           {adminCredentials.adminEmails.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.adminEmails.length - 1 ? 'border-b border-yellow-300 dark:border-yellow-700' : ''}`}>
                               <div className="font-medium text-yellow-800 dark:text-yellow-300 break-all leading-tight">{item.Email || item.Name || '-'}</div>
-                              <div className="text-[0.5625rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
+                              <div className="text-[1rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                           {adminCredentials.mitelLogins.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
                               <div className="font-medium text-blue-800 dark:text-blue-300 break-all leading-tight">{item.Login || '-'}</div>
-                              <div className="text-[0.5625rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
+                              <div className="text-[1rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -590,7 +590,7 @@ export default function DashboardPage() {
                           {adminCredentials.acronisBackups.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.acronisBackups.length - 1 ? 'border-b border-green-300 dark:border-green-700' : ''}`}>
                               <div className="font-medium text-green-800 dark:text-green-300 break-all leading-tight">{item.UserName || '-'}</div>
-                              <div className="text-[0.5625rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
+                              <div className="text-[1rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                           {adminCredentials.cloudflareAdmins.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.cloudflareAdmins.length - 1 ? 'border-b border-red-300 dark:border-red-700' : ''}`}>
                               <div className="font-medium text-red-800 dark:text-red-300 break-all leading-tight">{item.username || '-'}</div>
-                              <div className="text-[0.5625rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
+                              <div className="text-[1rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
                             </div>
                           ))}
                         </div>

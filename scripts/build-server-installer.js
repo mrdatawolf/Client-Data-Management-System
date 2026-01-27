@@ -175,7 +175,8 @@ echo   Client Data Management Server
 echo   Version: ${version}
 echo ========================================
 echo.
-echo Starting server on port 6030...
+echo Starting server...
+echo Configuration loaded from .env file
 echo.
 echo Open your browser to: http://localhost:6030
 echo.
@@ -183,10 +184,7 @@ echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
 
-set PORT=6030
-set HOSTNAME=0.0.0.0
-
-"%~dp0node\\node.exe" server.js
+"%~dp0node\\node.exe" start.js
 
 pause
 `;

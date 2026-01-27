@@ -144,6 +144,20 @@ COMPANIES_FILE_PATH=./Examples/companies.xlsx
 `;
 fs.writeFileSync(path.join(distDir, '.env'), envContent);
 
+// Create server wrapper that loads .env
+console.log('Creating server wrapper...');
+const serverWrapper = `// Server wrapper - loads .env file before starting Next.js server
+require('dotenv').config();
+
+// Set defaults if not in .env
+process.env.PORT = process.env.PORT || '6030';
+process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+
+// Start the Next.js server
+require('./server.js');
+`;
+fs.writeFileSync(path.join(distDir, 'start.js'), serverWrapper);
+
 // Create start script
 console.log('Creating start script...');
 const startScript = `@echo off
@@ -165,10 +179,7 @@ echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
 
-set PORT=6030
-set HOSTNAME=0.0.0.0
-
-node server.js
+node start.js
 
 pause
 `;

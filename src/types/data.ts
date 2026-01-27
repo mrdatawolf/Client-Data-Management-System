@@ -184,7 +184,7 @@ export interface GuacamoleHost {
 
 // Devices
 export interface Device {
-  client: string;
+  Client: string;
   Name: string;
   "IP address": string;
   "Machine Name / MAC": string;
