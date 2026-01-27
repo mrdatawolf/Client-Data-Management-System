@@ -474,81 +474,81 @@ export default function DashboardPage() {
                 {loadingData ? (
                   <p className="text-gray-500 dark:text-gray-400 p-2 text-xs">Loading...</p>
                 ) : (
-                  <div className="flex-1 grid grid-cols-4 gap-2 overflow-hidden">
+                  <div className="flex-1 grid grid-cols-2 gap-2 overflow-hidden">
 
-                    {/* Admin Emails - Compact Horizontal */}
-                    <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded p-1 flex flex-col overflow-hidden">
-                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-yellow-800 dark:text-yellow-300">
+                    {/* Admin Emails */}
+                    <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded p-1.5 flex flex-col overflow-hidden">
+                      <h4 className="text-xs font-semibold m-0 mb-1 text-yellow-800 dark:text-yellow-300">
                         Emails ({adminCredentials.adminEmails.length})
                       </h4>
                       {adminCredentials.adminEmails.length > 0 ? (
-                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
+                        <div className="flex-1 overflow-y-auto text-[1rem]">
                           {adminCredentials.adminEmails.map((item: any, idx: number) => (
-                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.adminEmails.length - 1 ? 'border-b border-yellow-300 dark:border-yellow-700' : ''}`}>
+                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.adminEmails.length - 1 ? 'border-b border-yellow-300 dark:border-yellow-700' : ''}`}>
                               <div className="font-medium text-yellow-800 dark:text-yellow-300 break-all leading-tight">{item.Email || item.Name || '-'}</div>
-                              <div className="text-[0.5rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
+                              <div className="text-[0.5625rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[0.5625rem] text-yellow-700 dark:text-yellow-400 italic m-0">No data</p>
+                        <p className="text-[1rem] text-yellow-700 dark:text-yellow-400 italic m-0">No data</p>
                       )}
                     </div>
 
-                    {/* Mitel Logins - Compact Horizontal */}
-                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded p-1 flex flex-col overflow-hidden">
-                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-blue-800 dark:text-blue-300">
+                    {/* Mitel Logins */}
+                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded p-1.5 flex flex-col overflow-hidden">
+                      <h4 className="text-xs font-semibold m-0 mb-1 text-blue-800 dark:text-blue-300">
                         Mitel ({adminCredentials.mitelLogins.length})
                       </h4>
                       {adminCredentials.mitelLogins.length > 0 ? (
-                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
+                        <div className="flex-1 overflow-y-auto text-[1rem]">
                           {adminCredentials.mitelLogins.map((item: any, idx: number) => (
-                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
+                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
                               <div className="font-medium text-blue-800 dark:text-blue-300 break-all leading-tight">{item.Login || '-'}</div>
-                              <div className="text-[0.5rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
+                              <div className="text-[0.5625rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[0.5625rem] text-blue-900 dark:text-blue-400 italic m-0">No data</p>
+                        <p className="text-[1rem] text-blue-900 dark:text-blue-400 italic m-0">No data</p>
                       )}
                     </div>
 
-                    {/* Acronis Backups - Compact Horizontal */}
-                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded p-1 flex flex-col overflow-hidden">
-                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-green-800 dark:text-green-300">
+                    {/* Acronis Backups */}
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded p-1.5 flex flex-col overflow-hidden">
+                      <h4 className="text-xs font-semibold m-0 mb-1 text-green-800 dark:text-green-300">
                         Acronis ({adminCredentials.acronisBackups.length})
                       </h4>
                       {adminCredentials.acronisBackups.length > 0 ? (
-                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
+                        <div className="flex-1 overflow-y-auto text-[1rem]">
                           {adminCredentials.acronisBackups.map((item: any, idx: number) => (
-                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.acronisBackups.length - 1 ? 'border-b border-green-300 dark:border-green-700' : ''}`}>
+                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.acronisBackups.length - 1 ? 'border-b border-green-300 dark:border-green-700' : ''}`}>
                               <div className="font-medium text-green-800 dark:text-green-300 break-all leading-tight">{item.UserName || '-'}</div>
-                              <div className="text-[0.5rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
+                              <div className="text-[0.5625rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[0.5625rem] text-green-700 dark:text-green-400 italic m-0">No data</p>
+                        <p className="text-[1rem] text-green-700 dark:text-green-400 italic m-0">No data</p>
                       )}
                     </div>
 
-                    {/* Cloudflare Admins - Compact Horizontal */}
-                    <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded p-1 flex flex-col overflow-hidden">
-                      <h4 className="text-[0.625rem] font-semibold m-0 mb-0.5 text-red-800 dark:text-red-300">
+                    {/* Cloudflare Admins */}
+                    <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded p-1.5 flex flex-col overflow-hidden">
+                      <h4 className="text-xs font-semibold m-0 mb-1 text-red-800 dark:text-red-300">
                         Cloudflare ({adminCredentials.cloudflareAdmins.length})
                       </h4>
                       {adminCredentials.cloudflareAdmins.length > 0 ? (
-                        <div className="flex-1 overflow-y-auto text-[0.5625rem]">
+                        <div className="flex-1 overflow-y-auto text-[1rem]">
                           {adminCredentials.cloudflareAdmins.map((item: any, idx: number) => (
-                            <div key={idx} className={`mb-0.5 pb-0.5 ${idx < adminCredentials.cloudflareAdmins.length - 1 ? 'border-b border-red-300 dark:border-red-700' : ''}`}>
+                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.cloudflareAdmins.length - 1 ? 'border-b border-red-300 dark:border-red-700' : ''}`}>
                               <div className="font-medium text-red-800 dark:text-red-300 break-all leading-tight">{item.username || '-'}</div>
-                              <div className="text-[0.5rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
+                              <div className="text-[0.5625rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[0.5625rem] text-red-700 dark:text-red-400 italic m-0">No data</p>
+                        <p className="text-[1rem] text-red-700 dark:text-red-400 italic m-0">No data</p>
                       )}
                     </div>
 

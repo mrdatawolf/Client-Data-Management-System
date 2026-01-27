@@ -337,56 +337,35 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: "1rem" }}>
+    <div className="flex flex-col h-full gap-4">
       {/* Search and Controls */}
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+      <div className="flex gap-4 items-center flex-wrap">
         <input
           type="text"
           placeholder="Search VMs, containers, daemons, or hosts..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            flex: 1,
-            minWidth: "250px",
-            padding: "0.5rem 1rem",
-            border: "1px solid #d1d5db",
-            borderRadius: "0.375rem",
-            fontSize: "0.875rem",
-          }}
+          className="flex-1 min-w-[250px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={expandAll}
-          style={{
-            padding: "0.5rem 1rem",
-            border: "1px solid #d1d5db",
-            borderRadius: "0.375rem",
-            backgroundColor: "white",
-            cursor: "pointer",
-            fontSize: "0.8125rem",
-          }}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer text-[0.8125rem] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
         >
           Expand All
         </button>
         <button
           onClick={collapseAll}
-          style={{
-            padding: "0.5rem 1rem",
-            border: "1px solid #d1d5db",
-            borderRadius: "0.375rem",
-            backgroundColor: "white",
-            cursor: "pointer",
-            fontSize: "0.8125rem",
-          }}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer text-[0.8125rem] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
         >
           Collapse All
         </button>
-        <div style={{ fontSize: "0.8125rem", color: "#6b7280" }}>
+        <div className="text-[0.8125rem] text-gray-500 dark:text-gray-400">
           {Object.keys(groupedData).length} hosts | {vms.length} VMs | {containers.length} containers | {daemons.length} daemons
         </div>
       </div>
 
       {/* Grouped List */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="flex-1 overflow-auto">
         {sortedHosts.map((hostName) => {
           const group = groupedData[hostName];
           const isExpanded = expandedHosts.has(hostName);
@@ -402,35 +381,22 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
           return (
             <div
               key={hostName}
-              style={{
-                marginBottom: "0.75rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: "0.5rem",
-                overflow: "hidden",
-              }}
+              className="mb-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
             >
               {/* Host Header */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "0.75rem 1rem",
-                  backgroundColor: "#f9fafb",
-                  borderBottom: isExpanded ? "1px solid #e5e7eb" : "none",
-                  cursor: "pointer",
-                }}
+                className={`flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors ${isExpanded ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}
                 onClick={() => toggleHost(hostName)}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <span style={{ fontSize: "1rem", transition: "transform 0.2s", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-base transition-transform duration-200 text-gray-600 dark:text-gray-400 ${isExpanded ? 'rotate-90' : ''}`}>
                     ▶
                   </span>
                   <div>
-                    <div style={{ fontWeight: "600", fontSize: "0.9375rem", color: "#111827" }}>
+                    <div className="font-semibold text-[0.9375rem] text-gray-900 dark:text-gray-100">
                       {hostName}
                     </div>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {hostInfo?.["IP address"] && `IP: ${hostInfo["IP address"]} | `}
                       {group.vms.length} VMs, {group.containers.length} containers{group.daemons.length > 0 && `, ${group.daemons.length} daemons`}
                     </div>
@@ -438,37 +404,23 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
                   {/* Resource allocation display */}
                   {(group.allocatedCores > 0 || group.allocatedRam > 0) && (
-                    <div style={{
-                      display: "flex",
-                      gap: "0.75rem",
-                      marginLeft: "1rem",
-                      padding: "0.25rem 0.5rem",
-                      backgroundColor: "#f3f4f6",
-                      borderRadius: "0.25rem",
-                      fontSize: "0.6875rem",
-                    }}>
+                    <div className="flex gap-3 ml-4 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-[0.6875rem]">
                       <div title="Allocated Cores">
-                        <span style={{ color: "#6b7280" }}>Cores: </span>
-                        <span style={{
-                          fontWeight: "600",
-                          color: hostCores && group.allocatedCores > hostCores ? "#dc2626" : "#059669"
-                        }}>
+                        <span className="text-gray-500 dark:text-gray-400">Cores: </span>
+                        <span className={`font-semibold ${hostCores && group.allocatedCores > hostCores ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {group.allocatedCores}
                         </span>
                         {hostCores !== undefined && (
-                          <span style={{ color: "#9ca3af" }}> / {hostCores}</span>
+                          <span className="text-gray-400 dark:text-gray-500"> / {hostCores}</span>
                         )}
                       </div>
                       <div title={`Allocated RAM (GB) - OS uses ${group.osOverheadRam}GB`}>
-                        <span style={{ color: "#6b7280" }}>RAM: </span>
-                        <span style={{
-                          fontWeight: "600",
-                          color: availableRam !== undefined && group.allocatedRam > availableRam ? "#dc2626" : "#059669"
-                        }}>
+                        <span className="text-gray-500 dark:text-gray-400">RAM: </span>
+                        <span className={`font-semibold ${availableRam !== undefined && group.allocatedRam > availableRam ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {group.allocatedRam}GB
                         </span>
                         {availableRam !== undefined && (
-                          <span style={{ color: "#9ca3af" }}> / {availableRam}GB</span>
+                          <span className="text-gray-400 dark:text-gray-500"> / {availableRam}GB</span>
                         )}
                       </div>
                     </div>
@@ -476,20 +428,11 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                 </div>
 
                 {/* Host Action Buttons */}
-                <div style={{ display: "flex", gap: "0.5rem" }} onClick={(e) => e.stopPropagation()}>
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                   {hostInfo && (
                     <button
                       onClick={() => setSelectedHost(hostInfo)}
-                      style={{
-                        padding: "0.375rem 0.75rem",
-                        border: "1px solid #6366f1",
-                        borderRadius: "0.25rem",
-                        backgroundColor: "#eef2ff",
-                        color: "#4f46e5",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        fontWeight: "500",
-                      }}
+                      className="px-3 py-1.5 border border-indigo-500 dark:border-indigo-400 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 cursor-pointer text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                       title="View host credentials"
                     >
                       Credentials
@@ -498,16 +441,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                   {hostInfo?.["IP address"] && hostInfo["RDP?"] === 1 && (
                     <button
                       onClick={() => openRDP(hostInfo["IP address"])}
-                      style={{
-                        padding: "0.375rem 0.75rem",
-                        border: "1px solid #3b82f6",
-                        borderRadius: "0.25rem",
-                        backgroundColor: "#dbeafe",
-                        color: "#1d4ed8",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        fontWeight: "500",
-                      }}
+                      className="px-3 py-1.5 border border-blue-500 dark:border-blue-400 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 cursor-pointer text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                       title="Open Remote Desktop"
                     >
                       RDP
@@ -516,16 +450,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                   {hostInfo?.["IP address"] && hostInfo["VNC?"] === 1 && (
                     <button
                       onClick={() => openVNC(hostInfo["IP address"])}
-                      style={{
-                        padding: "0.375rem 0.75rem",
-                        border: "1px solid #8b5cf6",
-                        borderRadius: "0.25rem",
-                        backgroundColor: "#ede9fe",
-                        color: "#6d28d9",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        fontWeight: "500",
-                      }}
+                      className="px-3 py-1.5 border border-violet-500 dark:border-violet-400 rounded bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 cursor-pointer text-xs font-medium hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors"
                       title="Open VNC"
                     >
                       VNC
@@ -534,16 +459,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                   {hostInfo?.["IP address"] && hostInfo["SSH?"] === 1 && (
                     <button
                       onClick={() => openSSH(hostInfo["IP address"], hostInfo.Login)}
-                      style={{
-                        padding: "0.375rem 0.75rem",
-                        border: "1px solid #059669",
-                        borderRadius: "0.25rem",
-                        backgroundColor: "#d1fae5",
-                        color: "#047857",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        fontWeight: "500",
-                      }}
+                      className="px-3 py-1.5 border border-emerald-600 dark:border-emerald-400 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 cursor-pointer text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                       title="Open SSH"
                     >
                       SSH
@@ -552,16 +468,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                   {hostInfo?.["IP address"] && hostInfo["Web?"] === 1 && (
                     <button
                       onClick={() => openWebUI(hostInfo["IP address"])}
-                      style={{
-                        padding: "0.375rem 0.75rem",
-                        border: "1px solid #f59e0b",
-                        borderRadius: "0.25rem",
-                        backgroundColor: "#fef3c7",
-                        color: "#b45309",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        fontWeight: "500",
-                      }}
+                      className="px-3 py-1.5 border border-amber-500 dark:border-amber-400 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 cursor-pointer text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
                       title="Open Web UI"
                     >
                       Web
@@ -572,57 +479,33 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
               {/* Expanded Content - Card Grid Layout */}
               {isExpanded && (
-                <div style={{ padding: "0.75rem 1rem" }}>
+                <div className="p-3 bg-white dark:bg-gray-800">
                   {/* Combined VMs and Containers in a single card grid */}
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                    gap: "0.5rem"
-                  }}>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
                     {/* VM Cards */}
                     {group.vms.map((vm, idx) => (
                       <div
                         key={`vm-${vm.Name}-${idx}`}
-                        style={{
-                          padding: "0.5rem",
-                          backgroundColor: vm.Active === 1 ? "#f0fdf4" : "#fef2f2",
-                          border: `1px solid ${vm.Active === 1 ? "#bbf7d0" : "#fecaca"}`,
-                          borderRadius: "0.375rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          minHeight: "90px",
-                        }}
+                        className={`p-2 rounded-md flex flex-col min-h-[90px] ${
+                          vm.Active === 1
+                            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                        }`}
                       >
                         {/* Header with name and badges */}
-                        <div style={{ marginBottom: "0.25rem" }}>
-                          <div style={{
-                            fontWeight: "600",
-                            fontSize: "0.8125rem",
-                            color: "#111827",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }} title={vm.Name}>
+                        <div className="mb-1">
+                          <div
+                            className="font-semibold text-[0.8125rem] text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={vm.Name}
+                          >
                             {vm.Name}
                           </div>
-                          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginTop: "0.125rem" }}>
-                            <span style={{
-                              fontSize: "0.625rem",
-                              padding: "0.0625rem 0.25rem",
-                              borderRadius: "9999px",
-                              backgroundColor: "#e0e7ff",
-                              color: "#3730a3",
-                            }}>
+                          <div className="flex gap-1 flex-wrap mt-0.5">
+                            <span className="text-[0.625rem] px-1 py-px rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300">
                               VM
                             </span>
                             {vm.Type && (
-                              <span style={{
-                                fontSize: "0.625rem",
-                                padding: "0.0625rem 0.25rem",
-                                borderRadius: "9999px",
-                                backgroundColor: "#fef3c7",
-                                color: "#92400e",
-                              }}>
+                              <span className="text-[0.625rem] px-1 py-px rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300">
                                 {vm.Type}
                               </span>
                             )}
@@ -630,61 +513,37 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                         </div>
 
                         {/* IP and specs */}
-                        <div style={{ fontSize: "0.6875rem", color: "#6b7280", flex: 1 }}>
-                          {vm.IP && <div style={{ fontFamily: "monospace" }}>{vm.IP}</div>}
+                        <div className="text-[0.6875rem] text-gray-500 dark:text-gray-400 flex-1">
+                          {vm.IP && <div className="font-mono">{vm.IP}</div>}
                           <div>
                             {vm["Startup memory (GB)"] && <span>{vm["Startup memory (GB)"]}GB</span>}
                             {vm["Assigned cores"] && <span> / {vm["Assigned cores"]}c</span>}
                           </div>
                           {/* Startup Notes */}
                           {vm["Startup Notes"] && (
-                            <div style={{
-                              marginTop: "0.25rem",
-                              padding: "0.25rem",
-                              backgroundColor: "#fef3c7",
-                              border: "1px solid #fcd34d",
-                              borderRadius: "0.25rem",
-                              fontSize: "0.625rem",
-                              color: "#92400e",
-                              lineHeight: "1.3",
-                            }} title={vm["Startup Notes"]}>
+                            <div
+                              className="mt-1 p-1 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded text-[0.625rem] text-amber-800 dark:text-amber-300 leading-tight"
+                              title={vm["Startup Notes"]}
+                            >
                               {vm["Startup Notes"]}
                             </div>
                           )}
                         </div>
 
                         {/* Action buttons */}
-                        <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.375rem" }}>
+                        <div className="flex gap-1 mt-1.5">
                           {vm.IP && (
                             <>
                               <button
                                 onClick={() => openRDP(vm.IP)}
-                                style={{
-                                  flex: 1,
-                                  padding: "0.25rem",
-                                  border: "none",
-                                  borderRadius: "0.25rem",
-                                  backgroundColor: "#3b82f6",
-                                  color: "white",
-                                  cursor: "pointer",
-                                  fontSize: "0.625rem",
-                                  fontWeight: "500",
-                                }}
+                                className="flex-1 px-1 py-1 border-none rounded bg-blue-500 hover:bg-blue-600 text-white cursor-pointer text-[0.625rem] font-medium transition-colors"
                                 title="RDP to VM"
                               >
                                 RDP
                               </button>
                               <button
                                 onClick={() => copyToClipboard(vm.IP)}
-                                style={{
-                                  padding: "0.25rem 0.375rem",
-                                  border: "1px solid #d1d5db",
-                                  borderRadius: "0.25rem",
-                                  backgroundColor: "white",
-                                  color: "#6b7280",
-                                  cursor: "pointer",
-                                  fontSize: "0.625rem",
-                                }}
+                                className="px-1.5 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer text-[0.625rem] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                                 title="Copy IP"
                               >
                                 IP
@@ -699,78 +558,44 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                     {group.containers.map((container, idx) => (
                       <div
                         key={`container-${container.Name}-${idx}`}
-                        style={{
-                          padding: "0.5rem",
-                          backgroundColor: "#f0f9ff",
-                          border: "1px solid #bae6fd",
-                          borderRadius: "0.375rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          minHeight: "90px",
-                        }}
+                        className="p-2 bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-md flex flex-col min-h-[90px]"
                       >
                         {/* Header with name and badge */}
-                        <div style={{ marginBottom: "0.25rem" }}>
-                          <div style={{
-                            fontWeight: "600",
-                            fontSize: "0.8125rem",
-                            color: "#111827",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }} title={container.Name}>
+                        <div className="mb-1">
+                          <div
+                            className="font-semibold text-[0.8125rem] text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={container.Name}
+                          >
                             {container.Name}
                           </div>
-                          <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.125rem" }}>
-                            <span style={{
-                              fontSize: "0.625rem",
-                              padding: "0.0625rem 0.25rem",
-                              borderRadius: "9999px",
-                              backgroundColor: "#dbeafe",
-                              color: "#1e40af",
-                            }}>
+                          <div className="flex gap-1 mt-0.5">
+                            <span className="text-[0.625rem] px-1 py-px rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
                               Container
                             </span>
                           </div>
                         </div>
 
                         {/* IP and port */}
-                        <div style={{ fontSize: "0.6875rem", color: "#6b7280", flex: 1 }}>
-                          {container.IP && <div style={{ fontFamily: "monospace" }}>{container.IP}</div>}
+                        <div className="text-[0.6875rem] text-gray-500 dark:text-gray-400 flex-1">
+                          {container.IP && <div className="font-mono">{container.IP}</div>}
                           {container.Port && <div>Port: {container.Port}</div>}
                           {/* Startup Notes */}
                           {container["Startup Notes"] && (
-                            <div style={{
-                              marginTop: "0.25rem",
-                              padding: "0.25rem",
-                              backgroundColor: "#fef3c7",
-                              border: "1px solid #fcd34d",
-                              borderRadius: "0.25rem",
-                              fontSize: "0.625rem",
-                              color: "#92400e",
-                              lineHeight: "1.3",
-                            }} title={container["Startup Notes"]}>
+                            <div
+                              className="mt-1 p-1 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded text-[0.625rem] text-amber-800 dark:text-amber-300 leading-tight"
+                              title={container["Startup Notes"]}
+                            >
                               {container["Startup Notes"]}
                             </div>
                           )}
                         </div>
 
                         {/* Action buttons */}
-                        <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.375rem" }}>
+                        <div className="flex gap-1 mt-1.5">
                           {container.IP && container.Port && (
                             <button
                               onClick={() => openWebUI(container.IP, container.Port)}
-                              style={{
-                                flex: 1,
-                                padding: "0.25rem",
-                                border: "none",
-                                borderRadius: "0.25rem",
-                                backgroundColor: "#f59e0b",
-                                color: "white",
-                                cursor: "pointer",
-                                fontSize: "0.625rem",
-                                fontWeight: "500",
-                              }}
+                              className="flex-1 px-1 py-1 border-none rounded bg-amber-500 hover:bg-amber-600 text-white cursor-pointer text-[0.625rem] font-medium transition-colors"
                               title="Open Web UI"
                             >
                               Open
@@ -779,15 +604,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                           {container.IP && (
                             <button
                               onClick={() => copyToClipboard(container.Port ? `${container.IP}:${container.Port}` : container.IP)}
-                              style={{
-                                padding: "0.25rem 0.375rem",
-                                border: "1px solid #d1d5db",
-                                borderRadius: "0.25rem",
-                                backgroundColor: "white",
-                                color: "#6b7280",
-                                cursor: "pointer",
-                                fontSize: "0.625rem",
-                              }}
+                              className="px-1.5 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer text-[0.625rem] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                               title="Copy address"
                             >
                               IP
@@ -801,46 +618,26 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                     {group.daemons.map((daemon, idx) => (
                       <div
                         key={`daemon-${daemon.Name}-${idx}`}
-                        style={{
-                          padding: "0.5rem",
-                          backgroundColor: daemon.Inactive === 1 ? "#fef2f2" : "#fdf4ff",
-                          border: `1px solid ${daemon.Inactive === 1 ? "#fecaca" : "#e9d5ff"}`,
-                          borderRadius: "0.375rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          minHeight: "90px",
-                        }}
+                        className={`p-2 rounded-md flex flex-col min-h-[90px] ${
+                          daemon.Inactive === 1
+                            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                            : 'bg-fuchsia-50 dark:bg-fuchsia-900/20 border border-fuchsia-200 dark:border-fuchsia-800'
+                        }`}
                       >
                         {/* Header with name and badge */}
-                        <div style={{ marginBottom: "0.25rem" }}>
-                          <div style={{
-                            fontWeight: "600",
-                            fontSize: "0.8125rem",
-                            color: "#111827",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }} title={daemon.Name}>
+                        <div className="mb-1">
+                          <div
+                            className="font-semibold text-[0.8125rem] text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={daemon.Name}
+                          >
                             {daemon.Name}
                           </div>
-                          <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.125rem" }}>
-                            <span style={{
-                              fontSize: "0.625rem",
-                              padding: "0.0625rem 0.25rem",
-                              borderRadius: "9999px",
-                              backgroundColor: "#f3e8ff",
-                              color: "#7c3aed",
-                            }}>
+                          <div className="flex gap-1 mt-0.5">
+                            <span className="text-[0.625rem] px-1 py-px rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300">
                               Daemon
                             </span>
                             {daemon.Inactive === 1 && (
-                              <span style={{
-                                fontSize: "0.625rem",
-                                padding: "0.0625rem 0.25rem",
-                                borderRadius: "9999px",
-                                backgroundColor: "#fee2e2",
-                                color: "#dc2626",
-                              }}>
+                              <span className="text-[0.625rem] px-1 py-px rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">
                                 Inactive
                               </span>
                             )}
@@ -848,58 +645,34 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
                         </div>
 
                         {/* IP and user */}
-                        <div style={{ fontSize: "0.6875rem", color: "#6b7280", flex: 1 }}>
-                          {daemon.IP && <div style={{ fontFamily: "monospace" }}>{daemon.IP}</div>}
+                        <div className="text-[0.6875rem] text-gray-500 dark:text-gray-400 flex-1">
+                          {daemon.IP && <div className="font-mono">{daemon.IP}</div>}
                           {daemon.User && <div>User: {daemon.User}</div>}
                           {/* Startup Notes */}
                           {daemon["Startup Notes"] && (
-                            <div style={{
-                              marginTop: "0.25rem",
-                              padding: "0.25rem",
-                              backgroundColor: "#fef3c7",
-                              border: "1px solid #fcd34d",
-                              borderRadius: "0.25rem",
-                              fontSize: "0.625rem",
-                              color: "#92400e",
-                              lineHeight: "1.3",
-                            }} title={daemon["Startup Notes"]}>
+                            <div
+                              className="mt-1 p-1 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded text-[0.625rem] text-amber-800 dark:text-amber-300 leading-tight"
+                              title={daemon["Startup Notes"]}
+                            >
                               {daemon["Startup Notes"]}
                             </div>
                           )}
                         </div>
 
                         {/* Action buttons */}
-                        <div style={{ display: "flex", gap: "0.25rem", marginTop: "0.375rem" }}>
+                        <div className="flex gap-1 mt-1.5">
                           {daemon.IP && (
                             <>
                               <button
                                 onClick={() => openRDP(daemon.IP)}
-                                style={{
-                                  flex: 1,
-                                  padding: "0.25rem",
-                                  border: "none",
-                                  borderRadius: "0.25rem",
-                                  backgroundColor: "#8b5cf6",
-                                  color: "white",
-                                  cursor: "pointer",
-                                  fontSize: "0.625rem",
-                                  fontWeight: "500",
-                                }}
+                                className="flex-1 px-1 py-1 border-none rounded bg-violet-500 hover:bg-violet-600 text-white cursor-pointer text-[0.625rem] font-medium transition-colors"
                                 title="RDP to Daemon"
                               >
                                 RDP
                               </button>
                               <button
                                 onClick={() => copyToClipboard(daemon.IP)}
-                                style={{
-                                  padding: "0.25rem 0.375rem",
-                                  border: "1px solid #d1d5db",
-                                  borderRadius: "0.25rem",
-                                  backgroundColor: "white",
-                                  color: "#6b7280",
-                                  cursor: "pointer",
-                                  fontSize: "0.625rem",
-                                }}
+                                className="px-1.5 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer text-[0.625rem] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                                 title="Copy IP"
                               >
                                 IP
@@ -913,7 +686,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
                   {/* Empty state */}
                   {group.vms.length === 0 && group.containers.length === 0 && group.daemons.length === 0 && (
-                    <div style={{ textAlign: "center", padding: "1rem", color: "#9ca3af", fontSize: "0.875rem" }}>
+                    <div className="text-center p-4 text-gray-400 dark:text-gray-500 text-sm">
                       No VMs, containers, or daemons
                     </div>
                   )}
@@ -924,7 +697,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
         })}
 
         {sortedHosts.length === 0 && (
-          <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280" }}>
+          <div className="text-center p-12 text-gray-500 dark:text-gray-400">
             No VMs, containers, or daemons found{searchTerm ? ` matching "${searchTerm}"` : ""}.
           </div>
         )}
@@ -933,62 +706,36 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
       {/* Host Credentials Modal */}
       {selectedHost && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            paddingTop: "3em",
-            zIndex: 1000,
-            overflow: "auto",
-          }}
+          className="fixed inset-0 bg-black/50 flex items-start justify-center pt-12 z-[1000] overflow-auto"
           onClick={() => setSelectedHost(null)}
         >
           <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "0.5rem",
-              padding: "1.5rem",
-              maxWidth: "500px",
-              width: "90%",
-              maxHeight: "calc(100vh - 6em)",
-              overflow: "auto",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-[500px] w-[90%] max-h-[calc(100vh-6em)] overflow-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#111827", margin: 0 }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 m-0">
                 {selectedHost.Name}
               </h3>
               <button
                 onClick={() => setSelectedHost(null)}
-                style={{
-                  padding: "0.25rem 0.5rem",
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  fontSize: "1.25rem",
-                  color: "#6b7280",
-                }}
+                className="px-2 py-1 border-none bg-transparent cursor-pointer text-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 ×
               </button>
             </div>
 
-            <div style={{ display: "grid", gap: "0.75rem" }}>
+            <div className="grid gap-3">
               {/* IP Address */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
+              <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>IP Address</div>
-                  <div style={{ fontWeight: "500", fontFamily: "monospace" }}>{selectedHost["IP address"] || "N/A"}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">IP Address</div>
+                  <div className="font-medium font-mono text-gray-900 dark:text-gray-100">{selectedHost["IP address"] || "N/A"}</div>
                 </div>
                 {selectedHost["IP address"] && (
                   <button
                     onClick={() => copyToClipboard(selectedHost["IP address"])}
-                    style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                   >
                     Copy
                   </button>
@@ -996,15 +743,15 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
               </div>
 
               {/* Login */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
+              <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Login</div>
-                  <div style={{ fontWeight: "500", fontFamily: "monospace" }}>{selectedHost.Login || "N/A"}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Login</div>
+                  <div className="font-medium font-mono text-gray-900 dark:text-gray-100">{selectedHost.Login || "N/A"}</div>
                 </div>
                 {selectedHost.Login && (
                   <button
                     onClick={() => copyToClipboard(selectedHost.Login)}
-                    style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                   >
                     Copy
                   </button>
@@ -1012,24 +759,24 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
               </div>
 
               {/* Password */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
+              <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Password</div>
-                  <div style={{ fontWeight: "500", fontFamily: "monospace" }}>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Password</div>
+                  <div className="font-medium font-mono text-gray-900 dark:text-gray-100">
                     {showPasswords.has("main") ? selectedHost.Password || "N/A" : "••••••••"}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.25rem" }}>
+                <div className="flex gap-1">
                   <button
                     onClick={() => togglePassword("main")}
-                    style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                   >
                     {showPasswords.has("main") ? "Hide" : "Show"}
                   </button>
                   {selectedHost.Password && (
                     <button
                       onClick={() => copyToClipboard(selectedHost.Password)}
-                      style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                     >
                       Copy
                     </button>
@@ -1039,14 +786,14 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
               {/* Alt Login */}
               {selectedHost["Alt Login"] && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
+                <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
                   <div>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Alt Login</div>
-                    <div style={{ fontWeight: "500", fontFamily: "monospace" }}>{selectedHost["Alt Login"]}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Alt Login</div>
+                    <div className="font-medium font-mono text-gray-900 dark:text-gray-100">{selectedHost["Alt Login"]}</div>
                   </div>
                   <button
                     onClick={() => copyToClipboard(selectedHost["Alt Login"])}
-                    style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                   >
                     Copy
                   </button>
@@ -1055,23 +802,23 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
               {/* Alt Password */}
               {selectedHost["Alt Passwd"] && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
+                <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
                   <div>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Alt Password</div>
-                    <div style={{ fontWeight: "500", fontFamily: "monospace" }}>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Alt Password</div>
+                    <div className="font-medium font-mono text-gray-900 dark:text-gray-100">
                       {showPasswords.has("alt") ? selectedHost["Alt Passwd"] : "••••••••"}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "0.25rem" }}>
+                  <div className="flex gap-1">
                     <button
                       onClick={() => togglePassword("alt")}
-                      style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                     >
                       {showPasswords.has("alt") ? "Hide" : "Show"}
                     </button>
                     <button
                       onClick={() => copyToClipboard(selectedHost["Alt Passwd"])}
-                      style={{ padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: "0.25rem", backgroundColor: "white", cursor: "pointer", fontSize: "0.75rem" }}
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-pointer text-xs hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors"
                     >
                       Copy
                     </button>
@@ -1081,36 +828,27 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
 
               {/* Description */}
               {selectedHost.Description && (
-                <div style={{ padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Description</div>
-                  <div style={{ fontSize: "0.875rem" }}>{selectedHost.Description}</div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Description</div>
+                  <div className="text-sm text-gray-900 dark:text-gray-100">{selectedHost.Description}</div>
                 </div>
               )}
 
               {/* Notes */}
               {selectedHost.Notes && (
-                <div style={{ padding: "0.5rem", backgroundColor: "#f9fafb", borderRadius: "0.25rem" }}>
-                  <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>Notes</div>
-                  <div style={{ fontSize: "0.875rem" }}>{selectedHost.Notes}</div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Notes</div>
+                  <div className="text-sm text-gray-900 dark:text-gray-100">{selectedHost.Notes}</div>
                 </div>
               )}
             </div>
 
             {/* Quick Connect Buttons */}
-            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.25rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <div className="flex gap-2 mt-5 justify-center flex-wrap">
               {selectedHost["IP address"] && selectedHost["RDP?"] === 1 && (
                 <button
                   onClick={() => openRDP(selectedHost["IP address"])}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    border: "none",
-                    borderRadius: "0.375rem",
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                  }}
+                  className="px-4 py-2 border-none rounded-md bg-blue-500 hover:bg-blue-600 text-white cursor-pointer text-sm font-medium transition-colors"
                 >
                   RDP
                 </button>
@@ -1118,16 +856,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
               {selectedHost["IP address"] && selectedHost["VNC?"] === 1 && (
                 <button
                   onClick={() => openVNC(selectedHost["IP address"])}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    border: "none",
-                    borderRadius: "0.375rem",
-                    backgroundColor: "#8b5cf6",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                  }}
+                  className="px-4 py-2 border-none rounded-md bg-violet-500 hover:bg-violet-600 text-white cursor-pointer text-sm font-medium transition-colors"
                 >
                   VNC
                 </button>
@@ -1135,16 +864,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
               {selectedHost["IP address"] && selectedHost["SSH?"] === 1 && (
                 <button
                   onClick={() => openSSH(selectedHost["IP address"], selectedHost.Login)}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    border: "none",
-                    borderRadius: "0.375rem",
-                    backgroundColor: "#059669",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                  }}
+                  className="px-4 py-2 border-none rounded-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer text-sm font-medium transition-colors"
                 >
                   SSH
                 </button>
@@ -1152,16 +872,7 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
               {selectedHost["IP address"] && selectedHost["Web?"] === 1 && (
                 <button
                   onClick={() => openWebUI(selectedHost["IP address"])}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    border: "none",
-                    borderRadius: "0.375rem",
-                    backgroundColor: "#f59e0b",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                  }}
+                  className="px-4 py-2 border-none rounded-md bg-amber-500 hover:bg-amber-600 text-white cursor-pointer text-sm font-medium transition-colors"
                 >
                   Web
                 </button>

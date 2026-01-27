@@ -161,9 +161,9 @@ export function DataTable({
   const visibleColumns = columns.filter(c => !c.hidden);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
+    <div className="flex flex-col h-full gap-4">
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="flex gap-3 flex-wrap items-center">
         {/* Search */}
         {enableSearch && (
           <input
@@ -174,35 +174,16 @@ export function DataTable({
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            style={{
-              flex: 1,
-              minWidth: '250px',
-              padding: '0.5rem 0.75rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem'
-            }}
+            className="flex-1 min-w-[250px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           />
         )}
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex gap-2">
           {onAdd && (
             <button
               onClick={onAdd}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors"
             >
               + Add New
             </button>
@@ -210,19 +191,7 @@ export function DataTable({
           {enableExport && (
             <button
               onClick={handleExport}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors"
             >
               Export CSV
             </button>
@@ -231,26 +200,17 @@ export function DataTable({
       </div>
 
       {/* Table Container */}
-      <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.375rem' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-          <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 10 }}>
-            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+      <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+        <table className="w-full border-collapse text-sm">
+          <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-10">
+            <tr className="border-b-2 border-gray-200 dark:border-gray-700">
               {visibleColumns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    textAlign: 'left',
-                    fontWeight: '600',
-                    fontSize: '0.75rem',
-                    color: '#374151',
-                    cursor: col.sortable !== false ? 'pointer' : 'default',
-                    userSelect: 'none',
-                    whiteSpace: 'nowrap'
-                  }}
+                  className={`px-4 py-3 text-left font-semibold text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap select-none ${col.sortable !== false ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : ''}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="flex items-center gap-2">
                     {col.label}
                     {sortConfig?.key === col.key && (
                       <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
@@ -259,16 +219,16 @@ export function DataTable({
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.75rem' }}>
+                <th className="px-4 py-3 text-right font-semibold text-xs text-gray-700 dark:text-gray-300">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white dark:bg-gray-800">
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => (
-                <tr key={rowIndex} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={rowIndex} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                   {visibleColumns.map((col) => {
                     const value = row[col.key];
                     const isPassword = col.type === 'password';
@@ -277,30 +237,16 @@ export function DataTable({
                     return (
                       <td
                         key={col.key}
-                        style={{
-                          padding: '0.75rem 1rem',
-                          fontFamily: col.type === 'ip' ? 'monospace' : undefined,
-                          maxWidth: '300px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''}`}
                       >
                         {isPassword && enablePasswordMasking ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontFamily: 'monospace' }}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono">
                               {isMasked ? value || '-' : '••••••••'}
                             </span>
                             <button
                               onClick={() => togglePasswordVisibility(rowIndex, col.key)}
-                              style={{
-                                padding: '0.25rem 0.5rem',
-                                fontSize: '0.75rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.25rem',
-                                backgroundColor: 'white',
-                                cursor: 'pointer'
-                              }}
+                              className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
                               title={isMasked ? 'Hide' : 'Show'}
                             >
                               {isMasked ? '👁️' : '👁️‍🗨️'}
@@ -311,7 +257,7 @@ export function DataTable({
                             href={value}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300"
                           >
                             {value}
                           </a>
@@ -322,20 +268,12 @@ export function DataTable({
                     );
                   })}
                   {(onEdit || onDelete) && (
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex gap-2 justify-end">
                         {onEdit && (
                           <button
                             onClick={() => onEdit(row)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              fontSize: '0.75rem',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer'
-                            }}
+                            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white border-none rounded cursor-pointer transition-colors"
                           >
                             Edit
                           </button>
@@ -343,15 +281,7 @@ export function DataTable({
                         {onDelete && (
                           <button
                             onClick={() => onDelete(row)}
-                            style={{
-                              padding: '0.375rem 0.75rem',
-                              fontSize: '0.75rem',
-                              backgroundColor: '#ef4444',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer'
-                            }}
+                            className="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white border-none rounded cursor-pointer transition-colors"
                           >
                             Delete
                           </button>
@@ -365,7 +295,7 @@ export function DataTable({
               <tr>
                 <td
                   colSpan={visibleColumns.length + (onEdit || onDelete ? 1 : 0)}
-                  style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}
+                  className="p-12 text-center text-gray-400 dark:text-gray-500 italic"
                 >
                   {searchQuery || Object.keys(columnFilters).length > 0
                     ? 'No results found'
@@ -378,15 +308,15 @@ export function DataTable({
       </div>
 
       {/* Pagination */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem' }}>
-        <div style={{ color: '#6b7280' }}>
+      <div className="flex justify-between items-center text-sm">
+        <div className="text-gray-500 dark:text-gray-400">
           Showing {Math.min((currentPage - 1) * rowsPerPage + 1, sortedData.length)} to{' '}
           {Math.min(currentPage * rowsPerPage, sortedData.length)} of {sortedData.length} records
           {searchQuery || Object.keys(columnFilters).length > 0 ? ` (filtered from ${data.length} total)` : ''}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="flex gap-2 items-center">
+          <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
             Rows per page:
             <select
               value={rowsPerPage}
@@ -394,12 +324,7 @@ export function DataTable({
                 setRowsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              style={{
-                padding: '0.25rem 0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.25rem',
-                fontSize: '0.875rem'
-              }}
+              className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {rowsPerPageOptions.map((option) => (
                 <option key={option} value={option}>
@@ -412,55 +337,47 @@ export function DataTable({
           <button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
-            style={{
-              padding: '0.375rem 0.75rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.25rem',
-              backgroundColor: currentPage === 1 ? '#f3f4f6' : 'white',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-            }}
+            className={`px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors ${
+              currentPage === 1
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600'
+            }`}
           >
             First
           </button>
           <button
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            style={{
-              padding: '0.375rem 0.75rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.25rem',
-              backgroundColor: currentPage === 1 ? '#f3f4f6' : 'white',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-            }}
+            className={`px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors ${
+              currentPage === 1
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600'
+            }`}
           >
             Previous
           </button>
-          <span style={{ padding: '0 0.5rem' }}>
+          <span className="px-2 text-gray-700 dark:text-gray-300">
             Page {currentPage} of {totalPages || 1}
           </span>
           <button
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages || totalPages === 0}
-            style={{
-              padding: '0.375rem 0.75rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.25rem',
-              backgroundColor: currentPage === totalPages || totalPages === 0 ? '#f3f4f6' : 'white',
-              cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer'
-            }}
+            className={`px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors ${
+              currentPage === totalPages || totalPages === 0
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600'
+            }`}
           >
             Next
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages || totalPages === 0}
-            style={{
-              padding: '0.375rem 0.75rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.25rem',
-              backgroundColor: currentPage === totalPages || totalPages === 0 ? '#f3f4f6' : 'white',
-              cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer'
-            }}
+            className={`px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors ${
+              currentPage === totalPages || totalPages === 0
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600'
+            }`}
           >
             Last
           </button>

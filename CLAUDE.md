@@ -12,7 +12,7 @@ A Next.js web application that manages IT infrastructure data for multiple clien
 
 - **Framework:** Next.js 16 with App Router
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS + inline styles
+- **Styling:** Tailwind CSS with dark mode support (`dark:` variants)
 - **Components:** Radix UI primitives
 - **Data Source:** Excel files (xlsx library)
 - **Auth:** JWT-based with SQLite (libsql)
@@ -36,12 +36,19 @@ A Next.js web application that manages IT infrastructure data for multiple clien
 │   │   ├── DataTable.tsx       # Reusable data table with search/sort/pagination
 │   │   ├── FullPageModal.tsx   # Modal overlay system
 │   │   ├── HostGroupedView.tsx # VM/Container/Daemon grouped by host
+│   │   ├── ThemeToggle.tsx     # Light/Dark/System theme toggle
 │   │   └── ui/                 # Radix UI components
 │   ├── lib/
 │   │   ├── excel/reader.ts     # Excel file reading and caching
-│   │   └── auth/               # Authentication utilities
+│   │   ├── auth/               # Authentication utilities
+│   │   └── preferences/db.ts   # User preferences database operations
+│   ├── context/
+│   │   └── ThemeContext.tsx    # Theme provider for dark mode
+│   ├── hooks/
+│   │   └── useTheme.ts         # Hook to access theme context
 │   └── types/
-│       └── data.ts             # TypeScript interfaces and Excel file config
+│       ├── data.ts             # TypeScript interfaces and Excel file config
+│       └── preferences.ts      # Theme and preferences types
 ├── Examples/                   # Sample Excel files for development
 ├── electron-app/               # Electron main process
 └── data/                       # SQLite databases (auth, misc)
@@ -133,6 +140,24 @@ export async function GET(request: NextRequest) {
 
 ## Recent Features
 
+### User Preferences & Dark Mode
+- Persists user preferences in SQLite database (linked to user accounts)
+- Falls back to localStorage for guests
+- Theme options: Light, Dark, System (follows OS preference)
+- Flash-prevention script in layout.tsx prevents white flash on dark theme
+- All components use Tailwind `dark:` variants for styling
+
+**API Endpoints:**
+- `GET/POST /api/preferences` - Get/set all preferences
+- `GET/PUT/DELETE /api/preferences/[key]` - Manage specific preference
+
+**Theme Usage:**
+```typescript
+import { useTheme } from '@/hooks/useTheme';
+const { theme, setTheme } = useTheme();
+// theme: 'light' | 'dark' | 'system'
+```
+
 ### Host Grouped View (HostGroupedView.tsx)
 - Groups VMs, Containers, and Daemons by their host server
 - Resource allocation tracking (cores, RAM)
@@ -199,6 +224,18 @@ interface Props {
 )}
 ```
 
+## NPM Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run auth:init` | Initialize auth database |
+| `npm run preferences:init` | Initialize preferences database |
+| `npm run electron:start` | Start Electron app |
+| `npm run electron:build` | Build Electron installer |
+| `npm run build:all` | Full production build |
+
 ## Testing
 
 - Use `Examples/` folder with sample Excel files
@@ -222,7 +259,8 @@ interface Props {
 
 ## Current Development Focus
 
+- User preferences system with dark mode support (completed)
 - VM/Container/Daemon management with host grouping
 - Resource allocation visibility
 - Connection button integration (RDP/VNC/SSH/Web)
-- Modal UX improvements
+- Server/Client executable packaging (planned - reference multi-user-timesheet)
