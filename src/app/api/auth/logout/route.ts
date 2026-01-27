@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 
 /**
- * Logout endpoint
- * Since we're using JWT, logout is handled client-side by removing the token
- * This endpoint exists for consistency and can be extended for token blacklisting
+ * Logout endpoint - clears the session cookie
  */
 export async function POST() {
-  return NextResponse.json({ message: "Logged out successfully" });
+  const response = NextResponse.json({ message: "Logged out successfully" });
+
+  // Clear the session cookie
+  response.cookies.set("session", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0, // Expire immediately
+    path: "/",
+  });
+
+  return response;
 }

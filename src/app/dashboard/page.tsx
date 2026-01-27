@@ -143,42 +143,50 @@ export default function DashboardPage() {
   }, [saveClientPreference]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    // Check authentication via API (supports runtime DISABLE_AUTH)
+    const checkAuthAndLoadClients = async () => {
+      try {
+        // Check if auth is disabled via server config
+        const configRes = await fetch("/api/config");
+        const config = await configRes.json();
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
+        if (config.authDisabled) {
+          // Auth disabled - use guest user
+          setUser({ username: "guest", role: "admin" });
+        } else {
+          // Check session via /api/auth/me
+          const meRes = await fetch("/api/auth/me");
+          if (!meRes.ok) {
+            router.push("/login");
+            return;
+          }
+          const meData = await meRes.json();
+          setUser(meData.user);
+        }
 
-    setUser(JSON.parse(userData));
-
-    // Load clients and restore saved selection
-    fetch("/api/data/clients")
-      .then(res => res.json())
-      .then(async (data) => {
-        const clientList = data.clients || [];
+        // Load clients
+        const clientsRes = await fetch("/api/data/clients");
+        const clientsData = await clientsRes.json();
+        const clientList = clientsData.clients || [];
         setClients(clientList);
         setLoading(false);
 
         // Priority: 1. Server preference, 2. localStorage, 3. env default
         let savedClient = "";
 
-        // Try to load from server first
-        try {
-          const response = await fetch(`/api/preferences/${PREFERENCE_KEYS.SELECTED_CLIENT}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          if (response.ok) {
-            const prefData = await response.json();
-            if (prefData.data?.value) {
-              savedClient = prefData.data.value;
+        // Try to load from server first (skip if auth disabled)
+        if (!config.authDisabled) {
+          try {
+            const prefRes = await fetch(`/api/preferences/${PREFERENCE_KEYS.SELECTED_CLIENT}`);
+            if (prefRes.ok) {
+              const prefData = await prefRes.json();
+              if (prefData.data?.value) {
+                savedClient = prefData.data.value;
+              }
             }
+          } catch (error) {
+            console.debug("Failed to load client preference from server:", error);
           }
-        } catch (error) {
-          console.debug("Failed to load client preference from server:", error);
         }
 
         // Fall back to localStorage if no server preference
@@ -192,16 +200,17 @@ export default function DashboardPage() {
         }
 
         // Validate that the saved client exists in the list
-        if (savedClient && clientList.some((c: any) => c.value === savedClient)) {
+        if (savedClient && clientList.some((c: { value: string }) => c.value === savedClient)) {
           setSelectedClient(savedClient);
-          // Sync localStorage if we got value from server
           localStorage.setItem(CLIENT_STORAGE_KEY, savedClient);
         }
-      })
-      .catch(err => {
-        console.error("Failed to load clients:", err);
+      } catch (err) {
+        console.error("Failed to load:", err);
         setLoading(false);
-      });
+      }
+    };
+
+    checkAuthAndLoadClients();
   }, [router]);
 
   // Fetch data when client is selected
@@ -230,9 +239,9 @@ export default function DashboardPage() {
     }
   }, [selectedClient]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    localStorage.removeItem("user"); // Clear any cached user data
     router.push("/login");
   };
 

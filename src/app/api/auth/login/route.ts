@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword } from "@/lib/auth/db";
-import { generateToken } from "@/lib/auth/jwt";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify credentials
+    // Verify credentials against auth.db
     const user = await verifyPassword(username, password);
 
     if (!user) {
@@ -25,16 +24,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token
-    const token = generateToken({
-      userId: user.id,
+    // Create simple session data
+    const sessionData = JSON.stringify({
+      id: user.id,
       username: user.username,
       role: user.role || "user",
     });
 
-    // Return token and user info
-    return NextResponse.json({
-      token,
+    // Create response with user info
+    const response = NextResponse.json({
+      success: true,
       user: {
         id: user.id,
         username: user.username,
@@ -42,6 +41,17 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+
+    // Set session cookie (HTTP-only for security)
+    response.cookies.set("session", Buffer.from(sessionData).toString("base64"), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24, // 24 hours
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

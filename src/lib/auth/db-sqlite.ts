@@ -58,7 +58,7 @@ const FALLBACK_ADMIN: User = {
   id: "fallback-admin-001",
   username: "admin",
   // bcrypt hash of "admin123"
-  password: "$2a$10$rQEY9zF7zJQPCH.dn1cE4.pPWXrGmJJPGhPP/kQGJhFHpXvnXsqOi",
+  password: "$2b$10$vGTuWeZolwBLnQcZNdjkiu8lNmeTUOnNV8Ci89dImxU9tiBOE1aBG",
   email: null,
   role: "admin",
   createdAt: new Date().toISOString(),

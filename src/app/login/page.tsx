@@ -32,7 +32,8 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
+      // Session cookie is set by the server automatically
+      // Store user for display purposes only
       localStorage.setItem("user", JSON.stringify(data.user));
       router.push("/dashboard");
     } catch (err) {

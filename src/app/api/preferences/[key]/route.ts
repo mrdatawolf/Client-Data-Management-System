@@ -6,32 +6,48 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, AuthenticatedRequest } from "@/lib/auth/middleware";
 import { getPreference, setPreference, deletePreference } from "@/lib/preferences/db";
 
 interface RouteContext {
   params: Promise<{ key: string }>;
 }
 
+// Helper to get user from session cookie
+function getUserFromSession(request: NextRequest): { id: string; username: string; role: string } | null {
+  // Check if auth is disabled
+  if (process.env.DISABLE_AUTH === "true") {
+    return { id: "guest", username: "guest", role: "admin" };
+  }
+
+  const sessionCookie = request.cookies.get("session");
+  if (!sessionCookie?.value) return null;
+
+  try {
+    return JSON.parse(Buffer.from(sessionCookie.value, "base64").toString());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * GET /api/preferences/[key]
  * Returns a specific preference for the authenticated user
  */
-export const GET = requireAuth(async (request: AuthenticatedRequest, context?: RouteContext) => {
-  const userId = request.user?.userId;
+export async function GET(request: NextRequest, context: RouteContext) {
+  const user = getUserFromSession(request);
 
-  if (!userId) {
-    return NextResponse.json({ error: "User ID not found" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const params = context ? await context.params : null;
+  const params = await context.params;
   const key = params?.key;
 
   if (!key) {
     return NextResponse.json({ error: "Preference key required" }, { status: 400 });
   }
 
-  const value = await getPreference(userId, key);
+  const value = await getPreference(user.id, key);
 
   if (value === null) {
     return NextResponse.json({ error: "Preference not found" }, { status: 404 });
@@ -40,21 +56,21 @@ export const GET = requireAuth(async (request: AuthenticatedRequest, context?: R
   return NextResponse.json({
     data: { key, value },
   });
-});
+}
 
 /**
  * PUT /api/preferences/[key]
  * Update a specific preference for the authenticated user
  * Body: { value: string }
  */
-export const PUT = requireAuth(async (request: AuthenticatedRequest, context?: RouteContext) => {
-  const userId = request.user?.userId;
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const user = getUserFromSession(request);
 
-  if (!userId) {
-    return NextResponse.json({ error: "User ID not found" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const params = context ? await context.params : null;
+  const params = await context.params;
   const key = params?.key;
 
   if (!key) {
@@ -72,7 +88,7 @@ export const PUT = requireAuth(async (request: AuthenticatedRequest, context?: R
       );
     }
 
-    const success = await setPreference(userId, key, value);
+    const success = await setPreference(user.id, key, value);
 
     if (!success) {
       return NextResponse.json(
@@ -92,27 +108,27 @@ export const PUT = requireAuth(async (request: AuthenticatedRequest, context?: R
       { status: 400 }
     );
   }
-});
+}
 
 /**
  * DELETE /api/preferences/[key]
  * Delete a specific preference for the authenticated user
  */
-export const DELETE = requireAuth(async (request: AuthenticatedRequest, context?: RouteContext) => {
-  const userId = request.user?.userId;
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const user = getUserFromSession(request);
 
-  if (!userId) {
-    return NextResponse.json({ error: "User ID not found" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const params = context ? await context.params : null;
+  const params = await context.params;
   const key = params?.key;
 
   if (!key) {
     return NextResponse.json({ error: "Preference key required" }, { status: 400 });
   }
 
-  const success = await deletePreference(userId, key);
+  const success = await deletePreference(user.id, key);
 
   if (!success) {
     return NextResponse.json({ error: "Preference not found" }, { status: 404 });
@@ -122,4 +138,4 @@ export const DELETE = requireAuth(async (request: AuthenticatedRequest, context?
     success: true,
     message: `Preference '${key}' deleted`,
   });
-});
+}

@@ -68,6 +68,25 @@ if (!fs.existsSync(distDir)) {
 console.log('Copying standalone server...');
 copyDir(standaloneDir, distDir, EXCLUDE_FOLDERS);
 
+// Copy @libsql/client to standalone node_modules (it's marked as external in next.config.js)
+console.log('Copying @libsql/client for SQLite support...');
+const libsqlSrcDir = path.join(__dirname, '..', 'node_modules', '@libsql');
+const libsqlDestDir = path.join(distDir, 'node_modules', '@libsql');
+if (fs.existsSync(libsqlSrcDir)) {
+  copyDir(libsqlSrcDir, libsqlDestDir);
+  console.log('  @libsql/client copied successfully');
+} else {
+  console.warn('  Warning: @libsql/client not found in node_modules');
+}
+
+// Also copy libsql (the native binding dependency)
+const libsqlNativeSrcDir = path.join(__dirname, '..', 'node_modules', 'libsql');
+const libsqlNativeDestDir = path.join(distDir, 'node_modules', 'libsql');
+if (fs.existsSync(libsqlNativeSrcDir)) {
+  copyDir(libsqlNativeSrcDir, libsqlNativeDestDir);
+  console.log('  libsql native bindings copied successfully');
+}
+
 // Copy static files
 console.log('Copying static files...');
 const distStaticDir = path.join(distDir, '.next', 'static');
@@ -115,14 +134,30 @@ if (fs.existsSync(dataDir)) {
   copyDir(dataDir, distDataDir);
 }
 
-// Create .env file with production settings
-console.log('Creating .env file...');
-const envContent = `# Server Configuration
+// Copy .env file from root if it exists, otherwise create a minimal one
+console.log('Copying .env file...');
+const rootEnvFile = path.join(__dirname, '..', '.env');
+const distEnvFile = path.join(distDir, '.env');
+
+if (fs.existsSync(rootEnvFile)) {
+  // Copy the root .env file directly
+  fs.copyFileSync(rootEnvFile, distEnvFile);
+  console.log('  Copied .env from project root');
+} else {
+  // Create minimal .env if root doesn't have one
+  console.log('  No root .env found, creating minimal .env...');
+  const envContent = `# ============================================
+# CLIENT DATA MANAGEMENT SERVER CONFIGURATION
+# ============================================
+# Copy this from your development .env file or configure manually
+# ============================================
+
+# Server Configuration
 PORT=6030
 HOSTNAME=0.0.0.0
 
-# JWT Secret - CHANGE THIS IN PRODUCTION!
-JWT_SECRET=your-secret-key-change-in-production
+# Disable authentication (set to "true" to skip login)
+DISABLE_AUTH=false
 
 # Node Environment
 NODE_ENV=production
@@ -130,28 +165,55 @@ NODE_ENV=production
 # Authentication Database Path
 AUTH_DB_PATH=./data/auth.db
 
-# Excel Data Paths
-# ===========================================
-# IMPORTANT: Update these paths for production!
-# ===========================================
-# For local testing (Examples folder included):
-EXCEL_BASE_PATH=./Examples
-COMPANIES_FILE_PATH=./Examples/companies.xlsx
-
-# For network drive (uncomment and modify):
-# EXCEL_BASE_PATH=S:/PBIData/NetDoc/Manual
-# COMPANIES_FILE_PATH=S:/PBIData/Biztech/companies.xlsx
+# ============================================
+# EXCEL DATA PATHS - CONFIGURE THESE!
+# ============================================
+EXCEL_BASE_PATH=S:/PBIData/NetDoc/Manual
+COMPANIES_FILE_PATH=S:/PBIData/Biztech/companies.xlsx
+# ============================================
 `;
-fs.writeFileSync(path.join(distDir, '.env'), envContent);
+  fs.writeFileSync(distEnvFile, envContent);
+}
 
-// Create server wrapper that loads .env
+// Create server wrapper that loads .env (no external dependencies)
 console.log('Creating server wrapper...');
 const serverWrapper = `// Server wrapper - loads .env file before starting Next.js server
-require('dotenv').config();
+// This script parses .env manually to avoid requiring dotenv package
+const fs = require('fs');
+const path = require('path');
+
+// Load .env file manually
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\\n').forEach(line => {
+    // Skip empty lines and comments
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+
+    // Parse KEY=VALUE (handle quoted values)
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      let value = match[2].trim();
+      // Remove surrounding quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      // Only set if not already set in environment
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
 
 // Set defaults if not in .env
 process.env.PORT = process.env.PORT || '6030';
 process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+
+console.log('Starting server on port ' + process.env.PORT + '...');
 
 // Start the Next.js server
 require('./server.js');
@@ -232,7 +294,7 @@ node server.js
 
 Edit the \`.env\` file to configure:
 - PORT - Server port (default: 6030)
-- JWT_SECRET - Secret key for authentication
+- DISABLE_AUTH - Set to "true" to skip login (for single-user deployments)
 - EXCEL_BASE_PATH - Path to Excel data files
 - COMPANIES_FILE_PATH - Path to companies Excel file
 

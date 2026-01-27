@@ -1,23 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, type AuthenticatedRequest } from "@/lib/auth/middleware";
 import { findUserById } from "@/lib/auth/db";
 
-async function handler(request: AuthenticatedRequest) {
+export async function GET(request: NextRequest) {
   try {
-    if (!request.user) {
+    // Check if auth is disabled
+    if (process.env.DISABLE_AUTH === "true") {
+      return NextResponse.json({
+        user: { id: "guest", username: "guest", role: "admin" }
+      });
+    }
+
+    // Get session from cookie
+    const sessionCookie = request.cookies.get("session");
+
+    if (!sessionCookie?.value) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    // Decode session
+    let session;
+    try {
+      session = JSON.parse(Buffer.from(sessionCookie.value, "base64").toString());
+    } catch {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
     // Get full user details from database
-    const user = await findUserById(request.user.userId);
+    const user = await findUserById(session.id);
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      // Session valid but user not in DB - return session data
+      return NextResponse.json({
+        user: {
+          id: session.id,
+          username: session.username,
+          role: session.role
+        }
+      });
     }
 
     // Return user without password
     const { password, ...userWithoutPassword } = user;
-
     return NextResponse.json({ user: userWithoutPassword });
   } catch (error) {
     console.error("Get user error:", error);
@@ -27,5 +50,3 @@ async function handler(request: AuthenticatedRequest) {
     );
   }
 }
-
-export const GET = requireAuth(handler);
