@@ -1,8 +1,7 @@
 /**
  * SQLite-based user preferences database operations
+ * With fallback for environments where @libsql/client isn't available
  */
-
-import { createClient } from "@libsql/client";
 
 export interface UserPreference {
   id: string;
@@ -15,13 +14,38 @@ export interface UserPreference {
 
 const DB_PATH = process.env.AUTH_DB_PATH || "./data/auth.db";
 
+// Flag to track if database is available
+let dbAvailable: boolean | null = null;
+let dbClient: any = null;
+
 /**
- * Get database client
+ * Get database client with dynamic import
+ * Returns null if @libsql/client is not available
  */
-function getDatabase() {
-  return createClient({
-    url: `file:${DB_PATH}`,
-  });
+async function getDatabase(): Promise<any | null> {
+  // If we already know the database is unavailable, return null immediately
+  if (dbAvailable === false) {
+    return null;
+  }
+
+  // If we have a cached client, return it
+  if (dbClient) {
+    return dbClient;
+  }
+
+  try {
+    // Dynamic import to avoid build-time module resolution issues
+    const { createClient } = await import("@libsql/client");
+    dbClient = createClient({
+      url: `file:${DB_PATH}`,
+    });
+    dbAvailable = true;
+    return dbClient;
+  } catch (error) {
+    console.warn("@libsql/client not available for preferences, using localStorage fallback on client");
+    dbAvailable = false;
+    return null;
+  }
 }
 
 /**
@@ -32,7 +56,13 @@ export async function getPreference(
   key: string
 ): Promise<string | null> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
+
+    if (!db) {
+      // Return null - client will fall back to localStorage
+      return null;
+    }
+
     const result = await db.execute({
       sql: "SELECT value FROM user_preferences WHERE userId = ? AND key = ?",
       args: [userId, key],
@@ -58,7 +88,13 @@ export async function setPreference(
   value: string
 ): Promise<boolean> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
+
+    if (!db) {
+      // Return false - client will fall back to localStorage
+      return false;
+    }
+
     const now = new Date().toISOString();
 
     // Check if preference exists
@@ -98,7 +134,13 @@ export async function getAllPreferences(
   userId: string
 ): Promise<Record<string, string>> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
+
+    if (!db) {
+      // Return empty - client will fall back to localStorage
+      return {};
+    }
+
     const result = await db.execute({
       sql: "SELECT key, value FROM user_preferences WHERE userId = ?",
       args: [userId],
@@ -124,7 +166,12 @@ export async function deletePreference(
   key: string
 ): Promise<boolean> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
+
+    if (!db) {
+      return false;
+    }
+
     const result = await db.execute({
       sql: "DELETE FROM user_preferences WHERE userId = ? AND key = ?",
       args: [userId, key],
@@ -142,7 +189,12 @@ export async function deletePreference(
  */
 export async function deleteAllPreferences(userId: string): Promise<boolean> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
+
+    if (!db) {
+      return false;
+    }
+
     await db.execute({
       sql: "DELETE FROM user_preferences WHERE userId = ?",
       args: [userId],
