@@ -281,7 +281,7 @@ export async function listUsers(): Promise<Omit<User, "password">[]> {
     "SELECT id, username, email, role, createdAt, updatedAt FROM users"
   );
 
-  return result.rows.map((row) => ({
+  return result.rows.map((row: Record<string, unknown>) => ({
     id: row.id as string,
     username: row.username as string,
     email: row.email as string | null,
