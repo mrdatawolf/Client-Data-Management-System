@@ -38,71 +38,21 @@ export function FullPageModal({ isOpen, onClose, title, children }: FullPageModa
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        paddingTop: '3em',
-        paddingLeft: '1rem',
-        paddingRight: '1rem',
-        paddingBottom: '1rem'
-      }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-12 px-4 pb-4"
       onClick={onClose}
     >
       <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '0.5rem',
-          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-          width: '100%',
-          maxWidth: '100%',
-          maxHeight: 'calc(100vh - 4em)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-full max-h-[calc(100vh-4em)] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div
-          style={{
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid #e5e7eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: '#f9fafb',
-            flexShrink: 0
-          }}
-        >
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0, color: '#111827' }}>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900 flex-shrink-0">
+          <h2 className="text-xl font-semibold m-0 text-gray-900 dark:text-gray-100">
             {title}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              padding: '0.5rem 0.75rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #d1d5db',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s',
-              fontSize: '1.25rem',
-              lineHeight: '1'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-            }}
+            className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-center transition-all text-xl leading-none text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
             title="Close (ESC)"
           >
             ×
@@ -110,46 +60,15 @@ export function FullPageModal({ isOpen, onClose, title, children }: FullPageModa
         </div>
 
         {/* Modal Content */}
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: '1.5rem'
-          }}
-        >
+        <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-800">
           {children}
         </div>
 
-        {/* Modal Footer (optional) */}
-        <div
-          style={{
-            padding: '1rem 1.5rem',
-            borderTop: '1px solid #e5e7eb',
-            backgroundColor: '#f9fafb',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '0.75rem',
-            flexShrink: 0
-          }}
-        >
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #d1d5db',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'all 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-            }}
+            className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer text-sm font-medium transition-all text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
           >
             Close
           </button>
