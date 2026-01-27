@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PREFERENCE_KEYS } from "@/types/preferences";
+
+const CLIENT_STORAGE_KEY = "selectedClient";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -105,6 +108,40 @@ export default function DashboardPage() {
       });
   };
 
+  // Save selected client to localStorage and server
+  const saveClientPreference = useCallback(async (client: string) => {
+    // Always save to localStorage for immediate access
+    localStorage.setItem(CLIENT_STORAGE_KEY, client);
+
+    // Save to server if authenticated
+    const token = localStorage.getItem("token");
+    if (token && client) {
+      try {
+        await fetch("/api/preferences", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            key: PREFERENCE_KEYS.SELECTED_CLIENT,
+            value: client,
+          }),
+        });
+      } catch (error) {
+        console.debug("Failed to save client preference to server:", error);
+      }
+    }
+  }, []);
+
+  // Handle client selection change
+  const handleClientChange = useCallback((client: string) => {
+    setSelectedClient(client);
+    if (client) {
+      saveClientPreference(client);
+    }
+  }, [saveClientPreference]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
@@ -116,22 +153,49 @@ export default function DashboardPage() {
 
     setUser(JSON.parse(userData));
 
-    // Load clients
+    // Load clients and restore saved selection
     fetch("/api/data/clients")
       .then(res => res.json())
-      .then(data => {
+      .then(async (data) => {
         const clientList = data.clients || [];
         setClients(clientList);
         setLoading(false);
 
-        // Set default company if specified in env and not already selected
-        const defaultCompany = process.env.NEXT_PUBLIC_DEFAULT_COMPANY;
-        if (defaultCompany && !selectedClient) {
-          // Check if the default company exists in the client list
-          const companyExists = clientList.some((c: any) => c.value === defaultCompany);
-          if (companyExists) {
-            setSelectedClient(defaultCompany);
+        // Priority: 1. Server preference, 2. localStorage, 3. env default
+        let savedClient = "";
+
+        // Try to load from server first
+        try {
+          const response = await fetch(`/api/preferences/${PREFERENCE_KEYS.SELECTED_CLIENT}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const prefData = await response.json();
+            if (prefData.data?.value) {
+              savedClient = prefData.data.value;
+            }
           }
+        } catch (error) {
+          console.debug("Failed to load client preference from server:", error);
+        }
+
+        // Fall back to localStorage if no server preference
+        if (!savedClient) {
+          savedClient = localStorage.getItem(CLIENT_STORAGE_KEY) || "";
+        }
+
+        // Fall back to env default if still nothing
+        if (!savedClient) {
+          savedClient = process.env.NEXT_PUBLIC_DEFAULT_COMPANY || "";
+        }
+
+        // Validate that the saved client exists in the list
+        if (savedClient && clientList.some((c: any) => c.value === savedClient)) {
+          setSelectedClient(savedClient);
+          // Sync localStorage if we got value from server
+          localStorage.setItem(CLIENT_STORAGE_KEY, savedClient);
         }
       })
       .catch(err => {
@@ -191,7 +255,7 @@ export default function DashboardPage() {
             <select
               id="client-select"
               value={selectedClient}
-              onChange={(e) => setSelectedClient(e.target.value)}
+              onChange={(e) => handleClientChange(e.target.value)}
               disabled={loading}
               className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-[250px]"
             >

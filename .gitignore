@@ -36,8 +36,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Electron
+# Electron & Build Output
 electron-dist/
+dist-electron/
+dist-server/
+distribute/
+distribute_server/
+temp-server-build/
+.node-portable/
 release/
 *.exe
 *.dmg

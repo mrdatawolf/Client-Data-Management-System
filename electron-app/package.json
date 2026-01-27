@@ -1,0 +1,11 @@
+{
+  "name": "client-data-management",
+  "version": "0.5.0",
+  "description": "Client Data Management System",
+  "main": "main.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  }
+}
