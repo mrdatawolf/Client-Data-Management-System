@@ -1,6 +1,6 @@
 {
   "name": "client-data-management-system",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 6030",
@@ -16,7 +16,10 @@
     "sync-version": "node scripts/sync-version.js",
     "electron:start": "electron electron-app",
     "electron:build": "node scripts/sync-version.js && electron-builder --config electron-builder.json",
-    "build:all": "npm run build && npm run build:standalone && npm run electron:build",
+    "server:installer": "node scripts/build-server-installer.js",
+    "build:all": "npm run clean && npm run build && npm run build:standalone && npm run electron:build && npm run server:installer && node scripts/copy-to-distribute.js",
+    "clean": "node -e \"const fs=require('fs'); ['dist-electron','dist-server','temp-server-build'].forEach(d=>{if(fs.existsSync(d)){fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned: '+d)}})\"",
+    "clean:all": "npm run clean && node -e \"const fs=require('fs'); ['.node-portable','.next'].forEach(d=>{if(fs.existsSync(d)){fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned: '+d)}})\"",
     "db:reset": "tsx scripts/reset-database.ts",
     "auth:init": "tsx scripts/init-auth-db.ts",
     "preferences:init": "tsx scripts/init-preferences-db.ts",
