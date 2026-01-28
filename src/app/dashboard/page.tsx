@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState("");
-  const [clients, setClients] = useState<Array<{value: string, label: string}>>([]);
+  const [clients, setClients] = useState<Array<{value: string, label: string, group?: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [externalInfo, setExternalInfo] = useState<any[]>([]);
   const [coreInfra, setCoreInfra] = useState<any[]>([]);
@@ -35,6 +35,8 @@ export default function DashboardPage() {
   const [services, setServices] = useState<any[]>([]);
   const [domains, setDomains] = useState<any[]>([]);
   const [cameras, setCameras] = useState<any[]>([]);
+  const [emails, setEmails] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
@@ -60,9 +62,11 @@ export default function DashboardPage() {
       fetch(`/api/data/daemons?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/services?client=${selectedClient}`).then(res => res.json()),
       fetch(`/api/data/domains?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json())
+      fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/emails?client=${selectedClient}`).then(res => res.json()),
+      fetch(`/api/data/users?client=${selectedClient}`).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData]) => {
         console.log("Admin credentials response:", adminData); // Debug log
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
@@ -82,6 +86,8 @@ export default function DashboardPage() {
         setServices(servicesData.data || []);
         setDomains(domainsData.data || []);
         setCameras(camerasData.data || []);
+        setEmails(emailsData.data || []);
+        setUsers(usersData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -104,6 +110,8 @@ export default function DashboardPage() {
         setServices([]);
         setDomains([]);
         setCameras([]);
+        setEmails([]);
+        setUsers([]);
         setLoadingData(false);
       });
   };
@@ -236,6 +244,8 @@ export default function DashboardPage() {
       setServices([]);
       setDomains([]);
       setCameras([]);
+      setEmails([]);
+      setUsers([]);
     }
   }, [selectedClient]);
 
@@ -268,17 +278,67 @@ export default function DashboardPage() {
               value={selectedClient}
               onChange={(e) => handleClientChange(e.target.value)}
               disabled={loading}
-              className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-[250px]"
+              className="px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-[180px]"
             >
               <option value="">
                 {loading ? 'Loading clients...' : 'Select a client'}
               </option>
-              {clients.map((client) => (
-                <option key={client.value} value={client.value}>
-                  {client.label}
-                </option>
-              ))}
+              {(() => {
+                // Group clients - only show optgroup for groups with 2+ clients
+                const groupCounts: Record<string, number> = {};
+                clients.forEach(c => {
+                  if (c.group) {
+                    groupCounts[c.group] = (groupCounts[c.group] || 0) + 1;
+                  }
+                });
+
+                const multiGroups = Object.keys(groupCounts).filter(g => groupCounts[g] >= 2).sort();
+                const groupedClients = clients.filter(c => c.group && groupCounts[c.group] >= 2);
+                const ungroupedClients = clients.filter(c => !c.group || groupCounts[c.group] < 2);
+
+                return (
+                  <>
+                    {multiGroups.map(group => (
+                      <optgroup key={group} label={`── ${group} ──`}>
+                        {groupedClients
+                          .filter(c => c.group === group)
+                          .map(client => (
+                            <option key={client.value} value={client.value}>
+                              {client.label}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))}
+                    {ungroupedClients.length > 0 && multiGroups.length > 0 && (
+                      <optgroup label="────────────">
+                        {ungroupedClients.map(client => (
+                          <option key={client.value} value={client.value}>
+                            {client.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {ungroupedClients.length > 0 && multiGroups.length === 0 && (
+                      ungroupedClients.map(client => (
+                        <option key={client.value} value={client.value}>
+                          {client.label}
+                        </option>
+                      ))
+                    )}
+                  </>
+                );
+              })()}
             </select>
+            {/* Domain Display in Header */}
+            {selectedClient && domains.length > 0 && (
+              <div className="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded-md text-sm">
+                <span className="text-cyan-600 dark:text-cyan-400 font-medium">Domain:</span>{' '}
+                <span className="text-cyan-800 dark:text-cyan-200">{domains[0]['Domain Name'] || '-'}</span>
+                {domains[0]['Alt Domain'] && (
+                  <span className="text-cyan-600 dark:text-cyan-400 ml-2 text-xs">({domains[0]['Alt Domain']})</span>
+                )}
+              </div>
+            )}
             {/* Refresh Button */}
             <button
               onClick={fetchClientData}
@@ -325,22 +385,22 @@ export default function DashboardPage() {
                   VMs/Containers
                 </button>
                 <button
-                  onClick={() => setOpenModal('billing')}
+                  onClick={() => setOpenModal('emails')}
                   className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Billing
+                  Emails
                 </button>
                 <button
-                  onClick={() => setOpenModal('sonicwall')}
+                  onClick={() => setOpenModal('servicesModal')}
                   className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Sonicwall
+                  Services
                 </button>
                 <button
-                  onClick={() => setOpenModal('slgEmail')}
+                  onClick={() => setOpenModal('usersModal')}
                   className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  SLG Email Issues
+                  Users
                 </button>
               </div>
             )}
@@ -453,93 +513,92 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Bottom Row: External Info, Managed WAN, and Admin Credentials - 30% height */}
-            <div className="grid grid-cols-3 gap-3 h-[calc(30%-0.75rem)]">
+            {/* Bottom Section - 30% height */}
+            <div className="h-[calc(30%-0.75rem)]">
 
-              {/* External Info */}
-              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
-                <h3
-                  onClick={() => setOpenModal('externalInfo')}
-                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-amber-500 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-all text-center hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                >
-                  External Info (Firewalls/VPN)
-                </h3>
-                {loadingData ? (
-                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
-                ) : externalInfo.length > 0 ? (
-                  <div className="flex-1 overflow-y-auto overflow-x-auto">
-                    <table className="w-full border-collapse text-xs">
-                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Device Type</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Connection</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {externalInfo.map((item, idx) => (
-                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
-                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Connection Type'] || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Username || '-'}</td>
+              {/* External Info, Managed WAN Info, Admin Credentials */}
+              <div className="grid grid-cols-3 gap-3 h-full">
+
+                {/* External Info */}
+                <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
+                  <h3
+                    onClick={() => setOpenModal('externalInfo')}
+                    className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-amber-500 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-all text-center hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                  >
+                    External Info (Firewalls/VPN)
+                  </h3>
+                  {loadingData ? (
+                    <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
+                  ) : externalInfo.length > 0 ? (
+                    <div className="flex-1 overflow-y-auto overflow-x-auto">
+                      <table className="w-full border-collapse text-xs">
+                        <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                          <tr className="border-b border-gray-200 dark:border-gray-600">
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Device Type</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Connection</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No external info</p>
-                )}
-              </div>
+                        </thead>
+                        <tbody>
+                          {externalInfo.map((item, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
+                              <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Connection Type'] || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Username || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No external info</p>
+                  )}
+                </div>
 
-              {/* Managed WAN Info */}
-              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
-                <h3
-                  onClick={() => setOpenModal('managedInfo')}
-                  className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-violet-500 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 cursor-pointer transition-all text-center hover:bg-violet-100 dark:hover:bg-violet-900/50"
-                >
-                  Managed WAN Info (ISP)
-                </h3>
-                {loadingData ? (
-                  <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
-                ) : managedInfo.length > 0 ? (
-                  <div className="flex-1 overflow-y-auto overflow-x-auto">
-                    <table className="w-full border-collapse text-xs">
-                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Provider</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Type</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 1</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 2</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Account #</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Phone 1</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {managedInfo.map((item, idx) => (
-                          <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Provider || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Type || '-'}</td>
-                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 1'] || '-'}</td>
-                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 2'] || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Account #'] || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Phone 1'] || '-'}</td>
+                {/* Managed WAN Info */}
+                <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
+                  <h3
+                    onClick={() => setOpenModal('managedInfo')}
+                    className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-violet-500 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 cursor-pointer transition-all text-center hover:bg-violet-100 dark:hover:bg-violet-900/50"
+                  >
+                    Managed WAN Info (ISP)
+                  </h3>
+                  {loadingData ? (
+                    <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
+                  ) : managedInfo.length > 0 ? (
+                    <div className="flex-1 overflow-y-auto overflow-x-auto">
+                      <table className="w-full border-collapse text-xs">
+                        <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
+                          <tr className="border-b border-gray-200 dark:border-gray-600">
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Provider</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Type</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 1</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Account #</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No managed WAN info</p>
-                )}
-              </div>
+                        </thead>
+                        <tbody>
+                          {managedInfo.map((item, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Provider || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Type || '-'}</td>
+                              <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 1'] || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Account #'] || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No managed WAN info</p>
+                  )}
+                </div>
 
-              {/* Admin Credentials Box (1x4 horizontal) */}
-              <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-2 flex flex-col overflow-hidden">
+                {/* Admin Credentials Box (1x4 horizontal) */}
+                <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-2 flex flex-col overflow-hidden">
                 <h3
                   onClick={() => setOpenModal('adminCredentials')}
                   className="text-sm font-semibold px-3 py-2 m-0 mb-2 text-rose-700 dark:text-rose-300 border-b-2 border-rose-400 bg-rose-50 dark:bg-rose-900/30 cursor-pointer rounded-t transition-all text-center hover:bg-rose-100 dark:hover:bg-rose-900/50"
@@ -629,8 +688,10 @@ export default function DashboardPage() {
 
                   </div>
                 )}
+                </div>
               </div>
             </div>
+            {/* End of bottom section */}
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-800 rounded-md">
@@ -1093,48 +1154,86 @@ export default function DashboardPage() {
       </FullPageModal>
 
       <FullPageModal
-        isOpen={openModal === 'billing'}
+        isOpen={openModal === 'emails'}
         onClose={() => setOpenModal(null)}
-        title="Billing"
+        title="Email Accounts"
       >
-        <div className="text-center p-12">
-          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
-            Billing Information
-          </h3>
-          <p className="text-gray-400 dark:text-gray-500 text-base">
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={emails}
+          columns={[
+            { key: 'Username', label: 'Username', sortable: true },
+            { key: 'Email', label: 'Email', type: 'email', sortable: true },
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Active', label: 'Active', sortable: true },
+            { key: 'MFA or Ignore', label: 'MFA', sortable: true },
+            { key: 'OWA_override', label: 'OWA Override', sortable: true },
+            { key: 'IMAP_override', label: 'IMAP Override', sortable: true },
+            { key: 'POP_override', label: 'POP Override', sortable: true },
+            { key: 'SMTP_override', label: 'SMTP Override', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Email)}
+          onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New Email (mockup)')}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal
-        isOpen={openModal === 'sonicwall'}
+        isOpen={openModal === 'servicesModal'}
         onClose={() => setOpenModal(null)}
-        title="Sonicwall"
+        title="Services"
       >
-        <div className="text-center p-12">
-          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
-            Sonicwall Information
-          </h3>
-          <p className="text-gray-400 dark:text-gray-500 text-base">
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={services}
+          columns={[
+            { key: 'Service', label: 'Service', sortable: true },
+            { key: 'Username', label: 'Username', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'Host / URL', label: 'Host/URL', sortable: true },
+            { key: 'Date of last known change', label: 'Last Changed', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Service)}
+          onDelete={(row) => confirm(`Delete ${row.Service}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New Service (mockup)')}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal
-        isOpen={openModal === 'slgEmail'}
+        isOpen={openModal === 'usersModal'}
         onClose={() => setOpenModal(null)}
-        title="SLG Email Issues"
+        title="Users"
       >
-        <div className="text-center p-12">
-          <h3 className="text-2xl font-semibold text-gray-500 dark:text-gray-400 mb-4">
-            SLG Email Issues
-          </h3>
-          <p className="text-gray-400 dark:text-gray-500 text-base">
-            Content coming soon...
-          </p>
-        </div>
+        <DataTable
+          data={users}
+          columns={[
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Login', label: 'Login', sortable: true },
+            { key: 'Password', label: 'Password', type: 'password', sortable: false },
+            { key: 'Computer Name', label: 'Computer', sortable: true },
+            { key: 'SubName', label: 'Location', sortable: true },
+            { key: 'Phone', label: 'Phone', sortable: true },
+            { key: 'Cell', label: 'Cell', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Notes 2', label: 'Notes 2', sortable: true },
+            { key: 'Epicor Number', label: 'Epicor #', sortable: true },
+            { key: 'Active', label: 'Active', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+          ]}
+          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+          onAdd={() => alert('Add New User (mockup)')}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
     </div>
   );

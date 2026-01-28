@@ -74,15 +74,11 @@ export async function POST(request: NextRequest) {
 
     const success = await setPreference(user.id, key, value);
 
-    if (!success) {
-      return NextResponse.json(
-        { error: "Failed to save preference" },
-        { status: 500 }
-      );
-    }
-
+    // Return success even if DB save failed - client will use localStorage as fallback
+    // This handles cases like fallback auth or DISABLE_AUTH where user doesn't exist in DB
     return NextResponse.json({
       success: true,
+      serverSaved: success,
       data: { key, value },
     });
   } catch (error) {

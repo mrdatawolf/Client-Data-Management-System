@@ -121,7 +121,12 @@ export async function setPreference(
     }
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    // Silently handle foreign key constraint errors (user doesn't exist in DB)
+    // This happens with fallback auth or DISABLE_AUTH=true - client will use localStorage
+    if (error?.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
+      return false;
+    }
     console.error("Error setting preference:", error);
     return false;
   }

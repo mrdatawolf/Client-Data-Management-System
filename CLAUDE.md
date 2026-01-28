@@ -103,9 +103,13 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
 ## Environment Variables
 
 ```bash
-# Data paths
-EXCEL_BASE_PATH=./Examples              # Base path for Excel files
-COMPANIES_FILE_PATH=./Examples/companies.xlsx
+# Data paths (production uses network drive)
+EXCEL_BASE_PATH=\\\\192.168.203.207\\Shared Folders\\PBIData\\NetDoc\\Manual
+COMPANIES_FILE_PATH=\\\\192.168.203.207\\Shared Folders\\PBIData\\Biztech\\companies.xlsx
+
+# For development, use local Examples folder:
+# EXCEL_BASE_PATH=./Examples
+# COMPANIES_FILE_PATH=./Examples/companies.xlsx
 
 # Resource defaults (for HostGroupedView)
 NEXT_PUBLIC_CONTAINER_DEFAULT_CORES=0
@@ -116,10 +120,12 @@ NEXT_PUBLIC_WINDOWS_OS_RAM=4           # OS overhead for Windows hosts
 NEXT_PUBLIC_OTHER_OS_RAM=1             # OS overhead for Linux/other
 
 # Cache
-EXCEL_CACHE_TTL=300000                  # 5 minutes in ms
+EXCEL_CACHE_TTL=300000                  # 5 minutes in ms (restart server to clear)
 
 # Auth
 JWT_SECRET=your-secret-here
+DISABLE_AUTH=true                       # Set to true to bypass login for development
+AUTH_DB_PATH=./data/auth.db
 ```
 
 ## API Pattern
@@ -140,9 +146,22 @@ export async function GET(request: NextRequest) {
 
 ## Recent Features
 
+### Dashboard Layout
+The main dashboard has a compact header with integrated controls:
+- **Client Selector** - Dropdown with grouped clients (uses `Group` column from companies.xlsx)
+  - Groups with 2+ clients display as `<optgroup>` sections
+  - Single-client groups appear ungrouped
+- **Domain Display** - Shows primary domain and alt domain for selected client (from domains.xlsx)
+- **Refresh Button** - Reloads client data
+- **Navigation Buttons** - Quick access to Guacamole, Misc, Devices, VMs, Emails, Services, Users modals
+
+**Dashboard Panels (70% top / 30% bottom):**
+- Top row: Core Infrastructure | Workstations + Users (50/50 split)
+- Bottom row: External Info | Managed WAN Info | Admin Credentials (3-column grid)
+
 ### User Preferences & Dark Mode
 - Persists user preferences in SQLite database (linked to user accounts)
-- Falls back to localStorage for guests
+- Falls back to localStorage for guests (or when DISABLE_AUTH=true)
 - Theme options: Light, Dark, System (follows OS preference)
 - Flash-prevention script in layout.tsx prevents white flash on dark theme
 - All components use Tailwind `dark:` variants for styling
@@ -157,6 +176,20 @@ import { useTheme } from '@/hooks/useTheme';
 const { theme, setTheme } = useTheme();
 // theme: 'light' | 'dark' | 'system'
 ```
+
+### Authentication
+- Session cookie-based authentication
+- `DISABLE_AUTH=true` in `.env` bypasses login for development
+- Fallback admin user (admin/admin123) when database unavailable
+- Foreign key constraint errors silently handled for guest users
+
+### Data Modals
+| Modal | Data Source | Key Fields |
+|-------|-------------|------------|
+| Emails | Email.xlsx | Username, Email, Password, MFA, Active |
+| Services | Services.xlsx | Service, Username, Password, Host/URL |
+| Users | Users.xlsx | Name, Login, Password, Computer, Phone |
+| VMs/Containers | VMs.xlsx, Containers.xlsx, Daemons.xlsx | Grouped by host server |
 
 ### Host Grouped View (HostGroupedView.tsx)
 - Groups VMs, Containers, and Daemons by their host server
@@ -259,8 +292,23 @@ interface Props {
 
 ## Current Development Focus
 
-- User preferences system with dark mode support (completed)
+**Completed:**
+- User preferences system with dark mode support
 - VM/Container/Daemon management with host grouping
 - Resource allocation visibility
 - Connection button integration (RDP/VNC/SSH/Web)
-- Server/Client executable packaging (planned - reference multi-user-timesheet)
+- Dashboard layout with grouped client selector
+- Domain display in header
+- Emails, Services, Users modals
+- DISABLE_AUTH for development mode
+
+**In Progress:**
+- Server/Client executable packaging (reference multi-user-timesheet project)
+
+## Client Grouping
+
+The client dropdown groups clients based on the `Group` column in companies.xlsx:
+- Only groups with 2+ clients show as `<optgroup>` sections
+- Single-client groups appear in the ungrouped list
+- Groups are sorted alphabetically
+- Cache must be cleared (restart server) after modifying companies.xlsx
