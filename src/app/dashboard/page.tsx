@@ -6,6 +6,7 @@ import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TitleEater } from "@/components/EasterEggs";
 import { PREFERENCE_KEYS } from "@/types/preferences";
 
 const CLIENT_STORAGE_KEY = "selectedClient";
@@ -270,7 +271,7 @@ export default function DashboardPage() {
         <div className="px-4 py-2 flex justify-between items-center">
           <div className="flex items-center gap-6">
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 m-0">
-              Infrastructure Dashboard
+              <TitleEater title="Infrastructure Dashboard" />
             </h1>
             {/* Client Selector in Header */}
             <select

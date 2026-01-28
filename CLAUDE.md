@@ -211,6 +211,34 @@ openSSH(ip)   // Opens ssh://user@ip
 openWebUI(ip) // Opens http://ip
 ```
 
+### Easter Egg System
+Extensible easter egg system for fun surprises:
+
+**Files:**
+- `src/lib/easterEggs/registry.ts` - Configuration registry
+- `src/components/EasterEggs/` - Easter egg components
+
+**Current Easter Eggs:**
+| Name | Trigger | Description |
+|------|---------|-------------|
+| Title Eater | 1 min or click title | Random creature eats "Infrastructure Dashboard" |
+
+**Creatures:** 🐛 caterpillar (150ms), 🐌 snail (250ms), 🐁 mouse (100ms), 👾 alien (120ms), 🦖 dinosaur (80ms), 🦈 shark (60ms), 🐢 turtle (300ms)
+
+**Adding New Easter Eggs:**
+1. Add config to `registry.ts`:
+```typescript
+newEgg: {
+  id: 'newEgg',
+  name: 'New Easter Egg',
+  enabled: true,
+  triggerDelay: 0,      // ms (0 = immediate)
+  probability: 1,       // 0-1 chance
+},
+```
+2. Create component in `src/components/EasterEggs/`
+3. Export from `index.tsx`
+
 ## Common Tasks
 
 ### Adding a New Excel File
@@ -301,6 +329,7 @@ interface Props {
 - Domain display in header
 - Emails, Services, Users modals
 - DISABLE_AUTH for development mode
+- Easter egg system (Title Eater with click-to-trigger)
 
 **In Progress:**
 - Server/Client executable packaging (reference multi-user-timesheet project)
