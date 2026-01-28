@@ -180,7 +180,7 @@ export function sortData<T extends Record<string, any>>(
  * Get all unique clients from companies file
  * Status meanings: 0=Good, 1=Billing Issue, 2=Must Contact Office
  */
-export function getAllClients(): Array<{ value: string; label: string }> {
+export function getAllClients(): Array<{ value: string; label: string; group?: string }> {
   try {
     const companies = readExcelFile("companies");
     return companies
@@ -188,6 +188,7 @@ export function getAllClients(): Array<{ value: string; label: string }> {
       .map((c: any) => ({
         value: c.Abbrv,
         label: `${c["Company Name"]} (${c.Abbrv})`,
+        group: c.Group || undefined,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   } catch (error) {
