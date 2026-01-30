@@ -228,7 +228,7 @@ export function DataTable({
           <tbody className="bg-white dark:bg-gray-800">
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                <tr key={rowIndex} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   {visibleColumns.map((col) => {
                     const value = row[col.key];
                     const isPassword = col.type === 'password';

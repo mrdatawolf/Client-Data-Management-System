@@ -330,13 +330,16 @@ export default function DashboardPage() {
                 );
               })()}
             </select>
-            {/* Domain Display in Header */}
+            {/* Domain Display in Header - Clickable to open AD modal */}
             {selectedClient && domains.length > 0 && (
-              <div className="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded-md text-sm">
-                <span className="text-cyan-600 dark:text-cyan-400 font-medium">Domain:</span>{' '}
-                <span className="text-cyan-800 dark:text-cyan-200">{domains[0]['Domain Name'] || '-'}</span>
+              <div
+                onClick={() => setOpenModal('domainAD')}
+                className="px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded-md text-sm cursor-pointer transition-all hover:bg-cyan-100 dark:hover:bg-cyan-900/50 flex flex-col items-center"
+              >
+                <span className="text-cyan-600 dark:text-cyan-400 font-medium text-xs">Domain:</span>
+                <span className="text-cyan-800 dark:text-cyan-200 font-semibold">{domains[0]['Domain Name'] || '-'}</span>
                 {domains[0]['Alt Domain'] && (
-                  <span className="text-cyan-600 dark:text-cyan-400 ml-2 text-xs">({domains[0]['Alt Domain']})</span>
+                  <span className="text-cyan-600 dark:text-cyan-400 text-xs">({domains[0]['Alt Domain']})</span>
                 )}
               </div>
             )}
@@ -435,7 +438,7 @@ export default function DashboardPage() {
                   onClick={() => setOpenModal('coreInfra')}
                   className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-blue-500 text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 cursor-pointer transition-all text-center hover:bg-blue-100 dark:hover:bg-blue-900/50"
                 >
-                  Core Infrastructure (Servers/Routers/Switches)
+                  Servers/Switches (Core)
                 </h3>
                 {loadingData ? (
                   <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
@@ -449,7 +452,6 @@ export default function DashboardPage() {
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Machine Name/MAC</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Description</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Login</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -460,7 +462,6 @@ export default function DashboardPage() {
                             <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
                             <td className="p-1.5 text-[0.6875rem] text-gray-900 dark:text-gray-100">{item['Machine Name / MAC'] || '-'}</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Description || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Login || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -486,23 +487,17 @@ export default function DashboardPage() {
                     <table className="w-full border-collapse text-xs">
                       <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
                         <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer (Full Name)</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Full Name</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Email</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">OS</th>
                         </tr>
                       </thead>
                       <tbody>
                         {workstationsUsers.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'}</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.location || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'} ({item.fullName || '-'})</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.username || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.fullName || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.email || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.os || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -526,7 +521,7 @@ export default function DashboardPage() {
                     onClick={() => setOpenModal('externalInfo')}
                     className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-amber-500 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-all text-center hover:bg-amber-100 dark:hover:bg-amber-900/50"
                   >
-                    External Info (Firewalls/VPN)
+                    Firewalls/Routers (External)
                   </h3>
                   {loadingData ? (
                     <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
@@ -537,9 +532,9 @@ export default function DashboardPage() {
                           <tr className="border-b border-gray-200 dark:border-gray-600">
                             <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
                             <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Device Type</th>
-                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
+                              <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Int IP Address</th>
+                              <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Ext IP Address</th>
                             <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Connection</th>
-                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -547,9 +542,9 @@ export default function DashboardPage() {
                             <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                               <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
                               <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.IntIP || '-'}</td>
                               <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
                               <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Connection Type'] || '-'}</td>
-                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Username || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -566,7 +561,7 @@ export default function DashboardPage() {
                     onClick={() => setOpenModal('managedInfo')}
                     className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-violet-500 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 cursor-pointer transition-all text-center hover:bg-violet-100 dark:hover:bg-violet-900/50"
                   >
-                    Managed WAN Info (ISP)
+                    Managed WAN Info (Special ISP notes)
                   </h3>
                   {loadingData ? (
                     <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
@@ -621,7 +616,6 @@ export default function DashboardPage() {
                           {adminCredentials.adminEmails.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.adminEmails.length - 1 ? 'border-b border-yellow-300 dark:border-yellow-700' : ''}`}>
                               <div className="font-medium text-yellow-800 dark:text-yellow-300 break-all leading-tight">{item.Email || item.Name || '-'}</div>
-                              <div className="text-[1rem] text-yellow-700 dark:text-yellow-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -640,7 +634,6 @@ export default function DashboardPage() {
                           {adminCredentials.mitelLogins.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
                               <div className="font-medium text-blue-800 dark:text-blue-300 break-all leading-tight">{item.Login || '-'}</div>
-                              <div className="text-[1rem] text-blue-900 dark:text-blue-400">Pwd: {item.Password || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -659,7 +652,6 @@ export default function DashboardPage() {
                           {adminCredentials.acronisBackups.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.acronisBackups.length - 1 ? 'border-b border-green-300 dark:border-green-700' : ''}`}>
                               <div className="font-medium text-green-800 dark:text-green-300 break-all leading-tight">{item.UserName || '-'}</div>
-                              <div className="text-[1rem] text-green-700 dark:text-green-400">Pwd: {item.PW || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -678,7 +670,6 @@ export default function DashboardPage() {
                           {adminCredentials.cloudflareAdmins.map((item: any, idx: number) => (
                             <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.cloudflareAdmins.length - 1 ? 'border-b border-red-300 dark:border-red-700' : ''}`}>
                               <div className="font-medium text-red-800 dark:text-red-300 break-all leading-tight">{item.username || '-'}</div>
-                              <div className="text-[1rem] text-red-700 dark:text-red-400">Pwd: {item.pass || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -1235,6 +1226,54 @@ export default function DashboardPage() {
           enableSearch={true}
           enableExport={true}
         />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'domainAD'}
+        onClose={() => setOpenModal(null)}
+        title="Domain / Active Directory"
+      >
+        <div className="flex flex-col gap-6 h-full">
+          {/* Domain Info Header */}
+          {domains.length > 0 && (
+            <div className="bg-cyan-50 dark:bg-cyan-900/30 border-2 border-cyan-300 dark:border-cyan-700 rounded-lg p-4">
+              <div className="flex items-center gap-4">
+                <div>
+                  <span className="text-cyan-600 dark:text-cyan-400 font-medium text-sm">Primary Domain:</span>
+                  <span className="text-cyan-800 dark:text-cyan-200 ml-2 text-lg font-semibold">{domains[0]['Domain Name'] || '-'}</span>
+                </div>
+                {domains[0]['Alt Domain'] && (
+                  <div>
+                    <span className="text-cyan-600 dark:text-cyan-400 font-medium text-sm">Alt Domain:</span>
+                    <span className="text-cyan-800 dark:text-cyan-200 ml-2">{domains[0]['Alt Domain']}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AD Servers Table */}
+          <div className="flex-1 overflow-hidden">
+            <DataTable
+              data={coreInfra.filter((item: any) => item['AD Server'] === 1 || item['AD Server'] === '1' || item['AD Server'] === true)}
+              columns={[
+                { key: 'Name', label: 'Server Name', sortable: true },
+                { key: 'SubName', label: 'Location', sortable: true },
+                { key: 'IP address', label: 'AD IP Address', type: 'ip', sortable: true },
+                { key: 'Login', label: 'Administrator Login', sortable: true },
+                { key: 'Password', label: 'Password', type: 'password', sortable: false },
+                { key: 'Description', label: 'Description', sortable: true },
+                { key: 'Notes', label: 'Notes', sortable: true },
+              ]}
+              onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
+              onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
+              onAdd={() => alert('Add New AD Server (mockup)')}
+              enablePasswordMasking={true}
+              enableSearch={true}
+              enableExport={true}
+            />
+          </div>
+        </div>
       </FullPageModal>
     </div>
   );

@@ -32,6 +32,7 @@ export interface CoreInfrastructure {
   "VNC?"?: number;
   "SSH?"?: number;
   "Web?"?: number;
+  "AD Server"?: number;
 }
 
 // User accounts
