@@ -147,17 +147,20 @@ export async function GET(request: NextRequest) {
 ## Recent Features
 
 ### Dashboard Layout
-The main dashboard has a compact header with integrated controls:
+The main dashboard has a compact header (h-16 = 64px) with integrated controls:
+- **Logo/Title** - Company logo that toggles to "Infrastructure Dashboard" text (easter egg)
 - **Client Selector** - Dropdown with grouped clients (uses `Group` column from companies.xlsx)
   - Groups with 2+ clients display as `<optgroup>` sections
   - Single-client groups appear ungrouped
-- **Domain Display** - Shows primary domain and alt domain for selected client (from domains.xlsx)
+- **Domain Display** - Clickable div showing domain info, opens Domain/AD modal
+  - Stacked layout: "Domain:" label on top, domain name below
 - **Refresh Button** - Reloads client data
 - **Navigation Buttons** - Quick access to Guacamole, Misc, Devices, VMs, Emails, Services, Users modals
+- **User Menu** - Clickable username dropdown with theme toggle and logout
 
 **Dashboard Panels (70% top / 30% bottom):**
-- Top row: Core Infrastructure | Workstations + Users (50/50 split)
-- Bottom row: External Info | Managed WAN Info | Admin Credentials (3-column grid)
+- Top row: Servers/Switches (Core) | Workstations + Users (50/50 split)
+- Bottom row: Firewalls/Routers (External) | Managed WAN Info | Admin Credentials (3-column grid)
 
 ### User Preferences & Dark Mode
 - Persists user preferences in SQLite database (linked to user accounts)
@@ -190,6 +193,7 @@ const { theme, setTheme } = useTheme();
 | Services | Services.xlsx | Service, Username, Password, Host/URL |
 | Users | Users.xlsx | Name, Login, Password, Computer, Phone |
 | VMs/Containers | VMs.xlsx, Containers.xlsx, Daemons.xlsx | Grouped by host server |
+| Domain/AD | Core.xlsx (AD Server=1), Domains.xlsx | Server Name, IP, Login, Password |
 
 ### Host Grouped View (HostGroupedView.tsx)
 - Groups VMs, Containers, and Daemons by their host server
@@ -221,7 +225,13 @@ Extensible easter egg system for fun surprises:
 **Current Easter Eggs:**
 | Name | Trigger | Description |
 |------|---------|-------------|
-| Title Eater | 1 min or click title | Random creature eats "Infrastructure Dashboard" |
+| Title Eater | 1 min or click logo/title | Random creature eats content, toggles between logo and text |
+
+**Logo/Text Toggle Behavior:**
+- Starts with company logo (`/smaller_logo.png`)
+- Click logo → creature eats it (fades out) → shows "Infrastructure Dashboard" text
+- Click text → creature eats it (letter by letter) → shows logo again
+- Container has fixed dimensions to prevent layout shift
 
 **Creatures:** 🐛 caterpillar (150ms), 🐌 snail (250ms), 🐁 mouse (100ms), 👾 alien (120ms), 🦖 dinosaur (80ms), 🦈 shark (60ms), 🐢 turtle (300ms)
 
@@ -238,6 +248,28 @@ newEgg: {
 ```
 2. Create component in `src/components/EasterEggs/`
 3. Export from `index.tsx`
+
+### Domain/Active Directory Modal
+Clicking the Domain display in the header opens a modal showing:
+- Primary Domain and Alt Domain header
+- DataTable of AD servers filtered from Core.xlsx where `AD Server` = 1
+- Columns: Server Name, Location, AD IP Address, Administrator Login, Password, Description, Notes
+
+**Core.xlsx AD Server Field:**
+- Add column `AD Server` with value `1` for domain controllers
+- These servers appear in the Domain/AD modal
+
+### User Menu Dropdown
+The username in the header is now a clickable dropdown containing:
+- **Theme selection** - Light ☀️, Dark 🌙, System 💻 (with checkmark on active)
+- **Logout button** - Styled in red
+
+### Firewalls/Routers Internal IP
+The external-info API enriches firewall/router data with internal IP addresses:
+- Reads both `externalInfo` and `core` Excel files
+- Matches by `SubName` (location) and device type keywords
+- Adds `IntIP` field from matching Core item's IP address
+- Displayed in the Firewalls/Routers dashboard panel
 
 ## Common Tasks
 
@@ -326,10 +358,15 @@ interface Props {
 - Resource allocation visibility
 - Connection button integration (RDP/VNC/SSH/Web)
 - Dashboard layout with grouped client selector
-- Domain display in header
+- Domain display in header (clickable to open AD modal)
 - Emails, Services, Users modals
 - DISABLE_AUTH for development mode
-- Easter egg system (Title Eater with click-to-trigger)
+- Easter egg system (Title Eater with logo/text toggle)
+- Dark mode hover fix in DataTable
+- Internal IP enrichment for Firewalls/Routers
+- Domain/Active Directory modal
+- User menu dropdown with theme selector
+- Dashboard section renaming (Servers/Switches, Firewalls/Routers)
 
 **In Progress:**
 - Server/Client executable packaging (reference multi-user-timesheet project)

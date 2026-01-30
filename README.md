@@ -188,19 +188,21 @@ Each modal includes a fully-featured data table with:
   - OS overhead (Windows: 4GB, Other: 1GB)
 
 ### Data Sections
-1. **Core Infrastructure** (Blue) - Servers, routers, switches
+1. **Servers/Switches (Core)** (Blue) - Servers, routers, switches
    - 14+ columns including IP addresses, login credentials, service tags
    - Password masking for Login, Password, Alt Login, Alt Passwd
    - Resource info: Cores, RAM (GB), Inactive status
    - Connection flags: RDP?, VNC?, SSH?, Web?
+   - AD Server flag for Domain Controller identification
 
 2. **Workstations + Users** (Green) - PC inventory and user accounts
    - 10 columns combining workstation and user data
    - Computer names, locations, users, emails, IP addresses
 
-3. **External Info** (Amber) - Firewalls and VPN connections
+3. **Firewalls/Routers (External)** (Amber) - Firewalls and VPN connections
    - 16 columns including firewall configs, VPN settings
    - Password masking for admin and VPN passwords
+   - Internal IP enrichment from Core.xlsx matching
 
 4. **Managed WAN Info** (Purple) - ISP provider information
    - 11 columns including provider details, IPs, support contacts
@@ -220,6 +222,16 @@ Each modal includes a fully-featured data table with:
    - Daemons from Daemons.xlsx (self-contained app servers)
    - All grouped by host server with resource tracking
 
+7. **Domain / Active Directory** (Cyan) - Domain controllers
+   - Accessible by clicking the Domain display in header
+   - Shows AD servers from Core.xlsx where AD Server = 1
+   - Displays server name, IP, administrator credentials
+
+### User Menu
+- Click username in header to open dropdown menu
+- **Theme selection**: Light ☀️, Dark 🌙, System 💻
+- **Logout**: Sign out of the application
+
 ### Authentication
 - JWT-based login system
 - User session management
@@ -232,6 +244,15 @@ Each modal includes a fully-featured data table with:
 - **HostGroupedView** - VM/Container/Daemon grouped display with resource tracking
 - **Responsive design** - Works on desktop, tablet, mobile
 
+### Recent Updates (2026-01-30)
+
+- **User Menu Dropdown** - Username is now clickable, showing theme selector (Light/Dark/System) and logout
+- **Domain/AD Modal** - Click the Domain display to see Active Directory servers with credentials
+- **Internal IP Display** - Firewalls/Routers now show internal IP from Core.xlsx
+- **Easter Egg Enhancement** - Logo/text toggle with eating animation
+- **Dark Mode Fix** - Fixed hover highlighting in DataTable for dark mode
+- **Dashboard Renaming** - "Core Infrastructure" → "Servers/Switches", "External Info" → "Firewalls/Routers"
+
 **Status:** Phase 1 Complete - Full read-only dashboard with CRUD mockups
 **Next Phase:** Implement actual write operations to Excel files
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-30
