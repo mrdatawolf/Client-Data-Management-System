@@ -1,15 +1,28 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { FullPageModal } from "@/components/FullPageModal";
-import { DataTable } from "@/components/DataTable";
+import { DataTable, SortConfig } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
 import { TitleEater } from "@/components/EasterEggs";
 import { useTheme } from "@/hooks/useTheme";
 import { PREFERENCE_KEYS, Theme } from "@/types/preferences";
 
 const CLIENT_STORAGE_KEY = "selectedClient";
+const SORT_PREFS_STORAGE_KEY = "sortPreferences";
+
+// Default sorts for each table (user's preference overrides these)
+const DEFAULT_SORTS: Record<string, SortConfig> = {
+  coreInfra: { key: 'IP address', direction: 'asc' },
+  workstationsUsers: { key: 'ipAddress', direction: 'asc' },
+  externalInfo: { key: 'IntIP', direction: 'asc' },
+  devices: { key: 'IP address', direction: 'asc' },
+  emails: { key: 'Email', direction: 'asc' },
+  servicesModal: { key: 'Service', direction: 'asc' },
+  usersModal: { key: 'Login', direction: 'asc' },
+  domainAD: { key: 'IP address', direction: 'asc' },
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -43,6 +56,69 @@ export default function DashboardPage() {
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [miscTab, setMiscTab] = useState<'services' | 'domains' | 'cameras' | 'documents'>('services');
+  const [reportsTab, setReportsTab] = useState<'inactive' | 'missingData' | 'mfaStatus' | 'firmware' | 'resources' | 'passwordAge' | 'win11'>('inactive');
+
+  // Sort preferences state (user's saved sort preferences per table)
+  const [sortPreferences, setSortPreferences] = useState<Record<string, SortConfig>>({});
+
+  // Get sort config for a table (user preference > default)
+  const getSortConfig = useCallback((tableId: string): SortConfig | undefined => {
+    return sortPreferences[tableId] || DEFAULT_SORTS[tableId];
+  }, [sortPreferences]);
+
+  // Handle sort change - save to localStorage and server
+  const handleSortChange = useCallback(async (tableId: string, sortConfig: SortConfig | null) => {
+    const newPrefs = { ...sortPreferences };
+    if (sortConfig) {
+      newPrefs[tableId] = sortConfig;
+    } else {
+      delete newPrefs[tableId];
+    }
+    setSortPreferences(newPrefs);
+
+    // Save to localStorage
+    localStorage.setItem(SORT_PREFS_STORAGE_KEY, JSON.stringify(newPrefs));
+
+    // Save to server if authenticated
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await fetch("/api/preferences", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            key: SORT_PREFS_STORAGE_KEY,
+            value: JSON.stringify(newPrefs),
+          }),
+        });
+      } catch (error) {
+        console.debug("Failed to save sort preferences to server:", error);
+      }
+    }
+  }, [sortPreferences]);
+
+  // Helper function to sort by IP address (handles IP comparison properly)
+  const sortByIP = useCallback((data: any[], ipField: string) => {
+    return [...data].sort((a, b) => {
+      const ipA = a[ipField] || '';
+      const ipB = b[ipField] || '';
+      // Convert IP to numeric for proper sorting (e.g., 192.168.1.10 vs 192.168.1.2)
+      const ipToNum = (ip: string) => {
+        const parts = ip.split('.');
+        if (parts.length !== 4) return 0;
+        return parts.reduce((acc, part) => acc * 256 + parseInt(part, 10) || 0, 0);
+      };
+      return ipToNum(ipA) - ipToNum(ipB);
+    });
+  }, []);
+
+  // Sorted data for dashboard panels
+  const sortedCoreInfra = useMemo(() => sortByIP(coreInfra, 'IP address'), [coreInfra, sortByIP]);
+  const sortedWorkstationsUsers = useMemo(() => sortByIP(workstationsUsers, 'ipAddress'), [workstationsUsers, sortByIP]);
+  const sortedExternalInfo = useMemo(() => sortByIP(externalInfo, 'IntIP'), [externalInfo, sortByIP]);
 
   // Extract data fetching into reusable function
   const fetchClientData = () => {
@@ -214,6 +290,38 @@ export default function DashboardPage() {
           setSelectedClient(savedClient);
           localStorage.setItem(CLIENT_STORAGE_KEY, savedClient);
         }
+
+        // Load sort preferences
+        let sortPrefs: Record<string, SortConfig> = {};
+
+        // Try to load from server first (skip if auth disabled)
+        if (!config.authDisabled) {
+          try {
+            const sortPrefRes = await fetch(`/api/preferences/${SORT_PREFS_STORAGE_KEY}`);
+            if (sortPrefRes.ok) {
+              const sortPrefData = await sortPrefRes.json();
+              if (sortPrefData.data?.value) {
+                sortPrefs = JSON.parse(sortPrefData.data.value);
+              }
+            }
+          } catch (error) {
+            console.debug("Failed to load sort preferences from server:", error);
+          }
+        }
+
+        // Fall back to localStorage if no server preference
+        if (Object.keys(sortPrefs).length === 0) {
+          const localSortPrefs = localStorage.getItem(SORT_PREFS_STORAGE_KEY);
+          if (localSortPrefs) {
+            try {
+              sortPrefs = JSON.parse(localSortPrefs);
+            } catch (e) {
+              console.debug("Failed to parse local sort preferences:", e);
+            }
+          }
+        }
+
+        setSortPreferences(sortPrefs);
       } catch (err) {
         console.error("Failed to load:", err);
         setLoading(false);
@@ -407,6 +515,12 @@ export default function DashboardPage() {
                 >
                   Users
                 </button>
+                <button
+                  onClick={() => setOpenModal('reports')}
+                  className="px-3 py-1.5 border border-purple-500 dark:border-purple-500 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 cursor-pointer text-sm font-medium transition-all hover:bg-purple-100 dark:hover:bg-purple-900/50"
+                >
+                  Reports
+                </button>
               </div>
             )}
           </div>
@@ -491,7 +605,7 @@ export default function DashboardPage() {
                 </h3>
                 {loadingData ? (
                   <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
-                ) : coreInfra.length > 0 ? (
+                ) : sortedCoreInfra.length > 0 ? (
                   <div className="flex-1 overflow-y-auto overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
@@ -504,7 +618,7 @@ export default function DashboardPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {coreInfra.map((item, idx) => (
+                        {sortedCoreInfra.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Name || '-'}</td>
@@ -531,20 +645,22 @@ export default function DashboardPage() {
                 </h3>
                 {loadingData ? (
                   <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
-                ) : workstationsUsers.length > 0 ? (
+                ) : sortedWorkstationsUsers.length > 0 ? (
                   <div className="flex-1 overflow-y-auto overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
                         <tr className="border-b border-gray-200 dark:border-gray-600">
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer (Full Name)</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {workstationsUsers.map((item, idx) => (
+                        {sortedWorkstationsUsers.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.location || '-'}</td>
+                            <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item.ipAddress || '-'}</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'} ({item.fullName || '-'})</td>
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.username || '-'}</td>
                           </tr>
@@ -574,7 +690,7 @@ export default function DashboardPage() {
                   </h3>
                   {loadingData ? (
                     <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
-                  ) : externalInfo.length > 0 ? (
+                  ) : sortedExternalInfo.length > 0 ? (
                     <div className="flex-1 overflow-y-auto overflow-x-auto">
                       <table className="w-full border-collapse text-xs">
                         <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
@@ -587,7 +703,7 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {externalInfo.map((item, idx) => (
+                          {sortedExternalInfo.map((item, idx) => (
                             <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                               <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
                               <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
@@ -786,6 +902,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="coreInfra"
+          defaultSort={getSortConfig('coreInfra')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -822,6 +941,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="workstationsUsers"
+          defaultSort={getSortConfig('workstationsUsers')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -836,7 +958,8 @@ export default function DashboardPage() {
             { key: 'SubName', label: 'Location', sortable: true },
             { key: 'Connection Type', label: 'Connection Type', sortable: true },
             { key: 'Device Type', label: 'Device Type', sortable: true },
-            { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
+            { key: 'IntIP', label: 'Int IP Address', type: 'ip', sortable: true },
+            { key: 'IP address', label: 'Ext IP Address', type: 'ip', sortable: true },
             { key: 'Port', label: 'Port', type: 'number', sortable: true },
             { key: 'Username', label: 'Username', sortable: true },
             { key: 'Password', label: 'Password', type: 'password', sortable: false },
@@ -864,6 +987,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="externalInfo"
+          defaultSort={getSortConfig('externalInfo')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -1178,6 +1304,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="devices"
+          defaultSort={getSortConfig('devices')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -1220,6 +1349,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="emails"
+          defaultSort={getSortConfig('emails')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -1244,6 +1376,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="servicesModal"
+          defaultSort={getSortConfig('servicesModal')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -1274,6 +1409,9 @@ export default function DashboardPage() {
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
+          tableId="usersModal"
+          defaultSort={getSortConfig('usersModal')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
@@ -1320,7 +1458,458 @@ export default function DashboardPage() {
               enablePasswordMasking={true}
               enableSearch={true}
               enableExport={true}
+              tableId="domainAD"
+              defaultSort={getSortConfig('domainAD')}
+              onSortChange={handleSortChange}
             />
+          </div>
+        </div>
+      </FullPageModal>
+
+      {/* Reports Modal */}
+      <FullPageModal
+        isOpen={openModal === 'reports'}
+        onClose={() => setOpenModal(null)}
+        title="Reports"
+      >
+        <div className="flex flex-col h-full">
+          {/* Report Tabs */}
+          <div className="flex gap-2 mb-4 flex-wrap border-b border-gray-200 dark:border-gray-700 pb-3">
+            {[
+              { id: 'inactive', label: 'Inactive Assets', icon: '🔴' },
+              { id: 'missingData', label: 'Missing Data', icon: '⚠️' },
+              { id: 'mfaStatus', label: 'MFA Status', icon: '🔐' },
+              { id: 'firmware', label: 'Firmware Versions', icon: '📦' },
+              { id: 'resources', label: 'Host Resources', icon: '💾' },
+              { id: 'passwordAge', label: 'Password Age', icon: '🔑' },
+              { id: 'win11', label: 'Windows 11 Ready', icon: '💻' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setReportsTab(tab.id as typeof reportsTab)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  reportsTab === tab.id
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Report Content */}
+          <div className="flex-1 overflow-auto">
+            {/* Inactive Assets Report */}
+            {reportsTab === 'inactive' && (
+              <div className="space-y-6">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">Inactive Assets Summary</h3>
+                  <p className="text-sm text-red-600 dark:text-red-400">Items marked as inactive across the infrastructure.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Inactive VMs ({vms.filter(v => v.Active === 0 || v.Active === '0').length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {vms.filter(v => v.Active === 0 || v.Active === '0').map((vm, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                          <span className="text-gray-900 dark:text-gray-100">{vm.Name}</span>
+                          <span className="text-gray-500 dark:text-gray-400 text-xs ml-2">({vm.Host})</span>
+                        </div>
+                      ))}
+                      {vms.filter(v => v.Active === 0 || v.Active === '0').length === 0 && (
+                        <p className="text-gray-400 dark:text-gray-500 italic">None</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Inactive Users ({users.filter(u => u.Active === 0 || u.Active === '0').length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {users.filter(u => u.Active === 0 || u.Active === '0').map((user, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                          <span className="text-gray-900 dark:text-gray-100">{user.Name}</span>
+                          <span className="text-gray-500 dark:text-gray-400 text-xs ml-2">({user.Login})</span>
+                        </div>
+                      ))}
+                      {users.filter(u => u.Active === 0 || u.Active === '0').length === 0 && (
+                        <p className="text-gray-400 dark:text-gray-500 italic">None</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Inactive Emails ({emails.filter(e => e.Active === 0 || e.Active === '0').length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {emails.filter(e => e.Active === 0 || e.Active === '0').map((email, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                          <span className="text-gray-900 dark:text-gray-100">{email.Email}</span>
+                        </div>
+                      ))}
+                      {emails.filter(e => e.Active === 0 || e.Active === '0').length === 0 && (
+                        <p className="text-gray-400 dark:text-gray-500 italic">None</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Inactive Daemons ({daemons.filter(d => d.Inactive === 1 || d.Inactive === '1').length})</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                    {daemons.filter(d => d.Inactive === 1 || d.Inactive === '1').map((daemon, i) => (
+                      <div key={i} className="py-1 px-2 bg-gray-50 dark:bg-gray-700 rounded">
+                        <span className="text-gray-900 dark:text-gray-100">{daemon.Name}</span>
+                      </div>
+                    ))}
+                    {daemons.filter(d => d.Inactive === 1 || d.Inactive === '1').length === 0 && (
+                      <p className="text-gray-400 dark:text-gray-500 italic">None</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Missing Data Report */}
+            {reportsTab === 'missingData' && (
+              <div className="space-y-6">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-2">Missing Data Report</h3>
+                  <p className="text-sm text-amber-600 dark:text-amber-400">Items missing critical information that should be filled in.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Servers Missing IP ({coreInfra.filter(c => !c['IP address']).length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {coreInfra.filter(c => !c['IP address']).map((item, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0 text-gray-900 dark:text-gray-100">
+                          {item.Name || 'Unnamed'}
+                        </div>
+                      ))}
+                      {coreInfra.filter(c => !c['IP address']).length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All servers have IP addresses</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Servers Missing Passwords ({coreInfra.filter(c => !c.Password).length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {coreInfra.filter(c => !c.Password).map((item, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0 text-gray-900 dark:text-gray-100">
+                          {item.Name || 'Unnamed'} <span className="text-gray-400">({item['IP address'] || 'No IP'})</span>
+                        </div>
+                      ))}
+                      {coreInfra.filter(c => !c.Password).length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All servers have passwords</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">VMs Missing IP ({vms.filter(v => !v.IP && (v.Active === 1 || v.Active === '1' || v.Active === undefined)).length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {vms.filter(v => !v.IP && (v.Active === 1 || v.Active === '1' || v.Active === undefined)).map((vm, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0 text-gray-900 dark:text-gray-100">
+                          {vm.Name} <span className="text-gray-400">({vm.Host})</span>
+                        </div>
+                      ))}
+                      {vms.filter(v => !v.IP && (v.Active === 1 || v.Active === '1' || v.Active === undefined)).length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All active VMs have IP addresses</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Services Missing Passwords ({services.filter(s => !s.Password).length})</h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {services.filter(s => !s.Password).map((svc, i) => (
+                        <div key={i} className="py-1 border-b border-gray-100 dark:border-gray-700 last:border-0 text-gray-900 dark:text-gray-100">
+                          {svc.Service}
+                        </div>
+                      ))}
+                      {services.filter(s => !s.Password).length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All services have passwords</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MFA Status Report */}
+            {reportsTab === 'mfaStatus' && (
+              <div className="space-y-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">MFA Status Report</h3>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">Email accounts grouped by MFA enrollment status.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-700 dark:text-green-300 mb-2">
+                      ✓ MFA Enabled ({emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 1 || e['MFA or Ignore'] === '1')).length})
+                    </h4>
+                    <div className="max-h-64 overflow-auto text-sm">
+                      {emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 1 || e['MFA or Ignore'] === '1')).map((email, i) => (
+                        <div key={i} className="py-1 border-b border-green-100 dark:border-green-800 last:border-0 text-gray-900 dark:text-gray-100">
+                          {email.Email}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <h4 className="font-semibold text-red-700 dark:text-red-300 mb-2">
+                      ✗ MFA Not Enabled ({emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 0 || e['MFA or Ignore'] === '0' || !e['MFA or Ignore'])).length})
+                    </h4>
+                    <div className="max-h-64 overflow-auto text-sm">
+                      {emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 0 || e['MFA or Ignore'] === '0' || !e['MFA or Ignore'])).map((email, i) => (
+                        <div key={i} className="py-1 border-b border-red-100 dark:border-red-800 last:border-0 text-gray-900 dark:text-gray-100">
+                          {email.Email}
+                        </div>
+                      ))}
+                      {emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 0 || e['MFA or Ignore'] === '0' || !e['MFA or Ignore'])).length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All active accounts have MFA</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {emails.length > 0 ? Math.round((emails.filter(e => (e.Active === 1 || e.Active === '1' || e.Active === undefined) && (e['MFA or Ignore'] === 1 || e['MFA or Ignore'] === '1')).length / emails.filter(e => e.Active === 1 || e.Active === '1' || e.Active === undefined).length) * 100) : 0}%
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">of active email accounts have MFA enabled</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Firmware Versions Report */}
+            {reportsTab === 'firmware' && (
+              <div className="space-y-6">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Firmware Versions Report</h3>
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400">Firewall and router firmware versions for update planning.</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Location</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Device Type</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">IP Address</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Firmware Version</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {externalInfo.filter(e => e['Current Version']).map((item, i) => (
+                        <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
+                          <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{item.SubName || '-'}</td>
+                          <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{item['Device Type'] || '-'}</td>
+                          <td className="px-4 py-2 font-mono text-gray-900 dark:text-gray-100">{item['IP address'] || '-'}</td>
+                          <td className="px-4 py-2">
+                            <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded text-xs font-mono">
+                              {item['Current Version']}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {externalInfo.filter(e => e['Current Version']).length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                            No firmware version data available
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <h4 className="font-semibold text-amber-700 dark:text-amber-300 mb-2">Devices Without Version Info ({externalInfo.filter(e => !e['Current Version']).length})</h4>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {externalInfo.filter(e => !e['Current Version']).map((item, i) => (
+                      <span key={i} className="px-2 py-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">
+                        {item['Device Type']} @ {item.SubName}
+                      </span>
+                    ))}
+                    {externalInfo.filter(e => !e['Current Version']).length === 0 && (
+                      <p className="text-green-600 dark:text-green-400">✓ All devices have firmware versions recorded</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Host Resources Report */}
+            {reportsTab === 'resources' && (
+              <div className="space-y-6">
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-300 mb-2">Host Resource Allocation</h3>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">CPU and RAM allocation across hypervisor hosts.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(() => {
+                    // Group VMs by host and calculate resources
+                    const hostResources: Record<string, { vms: number; cores: number; ram: number; hostCores?: number; hostRam?: number }> = {};
+                    vms.filter(v => v.Active === 1 || v.Active === '1' || v.Active === undefined).forEach(vm => {
+                      const host = vm.Host || 'Unknown';
+                      if (!hostResources[host]) {
+                        const hostInfo = coreInfra.find(c => c.Name === host);
+                        hostResources[host] = {
+                          vms: 0,
+                          cores: 0,
+                          ram: 0,
+                          hostCores: hostInfo?.Cores,
+                          hostRam: hostInfo?.['Ram (GB)']
+                        };
+                      }
+                      hostResources[host].vms++;
+                      hostResources[host].cores += parseInt(String(vm['Assigned cores'] || 0), 10);
+                      hostResources[host].ram += vm['Startup memory (GB)'] || 0;
+                    });
+                    return Object.entries(hostResources).map(([host, data]) => (
+                      <div key={host} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">{host}</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">VMs:</span>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">{data.vms}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">Allocated Cores:</span>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">
+                              {data.cores}{data.hostCores ? ` / ${data.hostCores}` : ''}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">Allocated RAM:</span>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">
+                              {data.ram} GB{data.hostRam ? ` / ${data.hostRam} GB` : ''}
+                            </span>
+                          </div>
+                          {data.hostCores && (
+                            <div className="mt-2 bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${data.cores / data.hostCores > 0.9 ? 'bg-red-500' : data.cores / data.hostCores > 0.7 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                style={{ width: `${Math.min(100, (data.cores / data.hostCores) * 100)}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                  {vms.length === 0 && (
+                    <p className="text-gray-400 dark:text-gray-500 italic col-span-full text-center py-8">No VM data available</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Password Age Report */}
+            {reportsTab === 'passwordAge' && (
+              <div className="space-y-6">
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-300 mb-2">Password Age Report</h3>
+                  <p className="text-sm text-orange-600 dark:text-orange-400">Services with tracked password change dates.</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Service</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Username</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Last Changed</th>
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Age</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {services.filter(s => s['Date of last known change']).map((svc, i) => {
+                        const lastChanged = new Date(svc['Date of last known change']);
+                        const today = new Date();
+                        const diffDays = Math.floor((today.getTime() - lastChanged.getTime()) / (1000 * 60 * 60 * 24));
+                        return (
+                          <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
+                            <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{svc.Service}</td>
+                            <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{svc.Username || '-'}</td>
+                            <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
+                              {lastChanged.toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                diffDays > 365 ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                                diffDays > 180 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+                                'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+                              }`}>
+                                {diffDays} days
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {services.filter(s => s['Date of last known change']).length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                            No password change dates recorded
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Windows 11 Ready Report */}
+            {reportsTab === 'win11' && (
+              <div className="space-y-6">
+                <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-cyan-800 dark:text-cyan-300 mb-2">Windows 11 Readiness Report</h3>
+                  <p className="text-sm text-cyan-600 dark:text-cyan-400">Workstations and VMs grouped by Windows 11 compatibility.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-700 dark:text-green-300 mb-2">
+                      ✓ Windows 11 Capable ({workstationsUsers.filter(w => w.win11Capable === 1 || w.win11Capable === '1').length} workstations)
+                    </h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {workstationsUsers.filter(w => w.win11Capable === 1 || w.win11Capable === '1').map((ws, i) => (
+                        <div key={i} className="py-1 border-b border-green-100 dark:border-green-800 last:border-0 text-gray-900 dark:text-gray-100">
+                          {ws.computerName} <span className="text-gray-400">({ws.cpu || 'Unknown CPU'})</span>
+                        </div>
+                      ))}
+                      {workstationsUsers.filter(w => w.win11Capable === 1 || w.win11Capable === '1').length === 0 && (
+                        <p className="text-gray-400 dark:text-gray-500 italic">No data</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <h4 className="font-semibold text-red-700 dark:text-red-300 mb-2">
+                      ✗ Not Windows 11 Capable ({workstationsUsers.filter(w => w.win11Capable === 0 || w.win11Capable === '0').length} workstations)
+                    </h4>
+                    <div className="max-h-48 overflow-auto text-sm">
+                      {workstationsUsers.filter(w => w.win11Capable === 0 || w.win11Capable === '0').map((ws, i) => (
+                        <div key={i} className="py-1 border-b border-red-100 dark:border-red-800 last:border-0 text-gray-900 dark:text-gray-100">
+                          {ws.computerName} <span className="text-gray-400">({ws.cpu || 'Unknown CPU'})</span>
+                        </div>
+                      ))}
+                      {workstationsUsers.filter(w => w.win11Capable === 0 || w.win11Capable === '0').length === 0 && (
+                        <p className="text-green-600 dark:text-green-400">✓ All workstations are Win11 capable</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <h4 className="font-semibold text-amber-700 dark:text-amber-300 mb-2">
+                    VMs with Windows 11 Issues ({vms.filter(v => v['Windows 11 Issue?']).length})
+                  </h4>
+                  <div className="max-h-32 overflow-auto text-sm">
+                    {vms.filter(v => v['Windows 11 Issue?']).map((vm, i) => (
+                      <div key={i} className="py-1 border-b border-amber-100 dark:border-amber-800 last:border-0">
+                        <span className="text-gray-900 dark:text-gray-100">{vm.Name}</span>
+                        <span className="text-amber-600 dark:text-amber-400 text-xs ml-2">Issue: {vm['Windows 11 Issue?']}</span>
+                      </div>
+                    ))}
+                    {vms.filter(v => v['Windows 11 Issue?']).length === 0 && (
+                      <p className="text-green-600 dark:text-green-400">✓ No Windows 11 issues flagged for VMs</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </FullPageModal>

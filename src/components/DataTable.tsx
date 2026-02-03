@@ -11,6 +11,11 @@ interface Column {
   hidden?: boolean;
 }
 
+export interface SortConfig {
+  key: string;
+  direction: 'asc' | 'desc';
+}
+
 interface DataTableProps {
   data: any[];
   columns: Column[];
@@ -22,6 +27,10 @@ interface DataTableProps {
   enableSearch?: boolean;
   enableFilters?: boolean;
   enableExport?: boolean;
+  // Sort persistence props
+  tableId?: string;
+  defaultSort?: SortConfig;
+  onSortChange?: (tableId: string, sortConfig: SortConfig | null) => void;
 }
 
 export function DataTable({
@@ -35,9 +44,12 @@ export function DataTable({
   enableSearch = true,
   enableFilters = true,
   enableExport = true,
+  tableId,
+  defaultSort,
+  onSortChange,
 }: DataTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[0]);
   const [maskedPasswords, setMaskedPasswords] = useState<Set<string>>(new Set());
@@ -124,13 +136,19 @@ export function DataTable({
 
   const handleSort = (key: string) => {
     setSortConfig(prev => {
+      let newConfig: SortConfig | null;
       if (!prev || prev.key !== key) {
-        return { key, direction: 'asc' };
+        newConfig = { key, direction: 'asc' };
+      } else if (prev.direction === 'asc') {
+        newConfig = { key, direction: 'desc' };
+      } else {
+        newConfig = null;
       }
-      if (prev.direction === 'asc') {
-        return { key, direction: 'desc' };
+      // Notify parent of sort change for persistence
+      if (onSortChange && tableId) {
+        onSortChange(tableId, newConfig);
       }
-      return null;
+      return newConfig;
     });
   };
 

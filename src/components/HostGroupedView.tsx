@@ -329,11 +329,26 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
     navigator.clipboard.writeText(text);
   };
 
+  // Helper to convert IP to numeric for proper sorting
+  const ipToNum = (ip: string): number => {
+    if (!ip) return 0;
+    const parts = ip.split('.');
+    if (parts.length !== 4) return 0;
+    return parts.reduce((acc, part) => acc * 256 + (parseInt(part, 10) || 0), 0);
+  };
+
   const sortedHosts = Object.keys(groupedData).sort((a, b) => {
     // Put "Unknown Host" and "Unassigned Containers" at the end
     if (a.includes("Unknown") || a.includes("Unassigned")) return 1;
     if (b.includes("Unknown") || b.includes("Unassigned")) return -1;
-    return a.localeCompare(b);
+
+    // Sort by host IP address
+    const hostAInfo = groupedData[a].hostInfo;
+    const hostBInfo = groupedData[b].hostInfo;
+    const ipA = hostAInfo?.["IP address"] || '';
+    const ipB = hostBInfo?.["IP address"] || '';
+
+    return ipToNum(ipA) - ipToNum(ipB);
   });
 
   return (
