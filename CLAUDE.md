@@ -59,10 +59,12 @@ A Next.js web application that manages IT infrastructure data for multiple clien
 | File | Purpose |
 |------|---------|
 | `src/types/data.ts` | All TypeScript interfaces + EXCEL_FILES config mapping |
-| `src/lib/excel/reader.ts` | Excel reading, caching, filtering utilities |
+| `src/lib/excel/reader.ts` | Excel reading, writing, caching, filtering utilities |
 | `src/app/dashboard/page.tsx` | Main dashboard with client selector and data views |
+| `src/app/api/data/update/route.ts` | API for updating/adding/deleting Excel data |
 | `src/components/HostGroupedView.tsx` | VMs/Containers/Daemons grouped by host with resource tracking |
-| `src/components/DataTable.tsx` | Generic data table component |
+| `src/components/DataTable.tsx` | Generic data table with inline editing |
+| `src/components/AddRecordModal.tsx` | Modal form for adding new records |
 | `src/components/FullPageModal.tsx` | Modal wrapper for data views |
 
 ## Data Model
@@ -142,6 +144,97 @@ export async function GET(request: NextRequest) {
   const filtered = filterByClient(data, client);
   return { data: filtered, count: filtered.length };
 }
+```
+
+## Data Editing & Writing
+
+### Inline Cell Editing
+DataTable supports inline editing via double-click:
+- Double-click any editable cell to enter edit mode
+- Press Enter to save, Escape to cancel
+- Changes save directly to Excel files on the network drive
+- Password fields show as clear text when editing
+
+**DataTable Props for Editing:**
+```typescript
+<DataTable
+  data={data}
+  columns={columns}
+  editable={true}
+  onCellEdit={(row, columnKey, newValue) => handleEdit(...)}
+  onAdd={() => setAddModalType('myType')}
+/>
+```
+
+**Column Configuration:**
+```typescript
+{ key: 'Name', label: 'Name', editable: false }  // Non-editable
+{ key: 'Password', label: 'Password', type: 'password' }  // Masked, editable
+```
+
+### Update API
+`POST /api/data/update` handles all Excel modifications:
+
+```typescript
+// Update a single cell
+{ action: 'updateCell', fileKey: 'core', rowIdentifier: { Client: 'BT', Name: 'DC01' }, columnKey: 'IP address', newValue: '192.168.1.10' }
+
+// Add a new row
+{ action: 'addRow', fileKey: 'externalInfo', rowData: { Client: 'BT', SubName: 'Main', ... } }
+
+// Delete a row
+{ action: 'deleteRow', fileKey: 'users', rowIdentifier: { Client: 'BT', Login: 'jsmith' } }
+```
+
+### Excel Write Functions (reader.ts)
+```typescript
+updateExcelCell(fileKey, rowIdentifier, columnKey, newValue)  // Single cell
+updateExcelRow(fileKey, rowIdentifier, updates)               // Multiple cells
+addExcelRow(fileKey, rowData)                                 // New row
+deleteExcelRow(fileKey, rowIdentifier)                        // Remove row
+```
+
+**UNC Path Handling:** Uses `fs.writeFileSync` with buffer instead of `XLSX.writeFile()` for network path compatibility.
+
+### AddRecordModal Component
+Reusable modal for adding new records:
+
+```typescript
+<AddRecordModal
+  isOpen={addModalType === 'core'}
+  onClose={() => setAddModalType(null)}
+  onSave={async (data) => handleAddRecord('core', data)}
+  title="Add Server/Switch"
+  fields={[
+    { key: 'Name', label: 'Name', required: true },
+    { key: 'IP address', label: 'IP Address', type: 'ip', required: true },
+    { key: 'Password', label: 'Password', type: 'password' },
+    { key: 'Notes', label: 'Notes', type: 'textarea' },
+  ]}
+  autoFilledFields={{ Client: selectedClient }}
+/>
+```
+
+**Field Types:** `text`, `password`, `number`, `ip`, `email`, `url`, `textarea`
+
+### Joined/Merged View Editing
+Some views combine data from multiple Excel files:
+
+**Workstations + Users:** Merged view with fields from both files
+- Workstation fields → `workstations.xlsx`
+- User fields → `users.xlsx`
+- Row identifiers: `_wsClient`, `_wsComputerName`, `_userClient`, `_userLogin`
+
+**Firewalls/Routers:** External info enriched with Core data
+- External fields → `externalInfo.xlsx`
+- IntIP field → `core.xlsx` (matched by SubName)
+- Row identifiers: `_coreClient`, `_coreName`
+
+### Cache Busting
+After edits, data is refreshed with cache-busting:
+```typescript
+const cacheBuster = `&_t=${Date.now()}`;
+fetch(`/api/data/core?client=${client}${cacheBuster}`, { cache: 'no-store' })
 ```
 
 ## Recent Features
@@ -292,6 +385,49 @@ The external-info API enriches firewall/router data with internal IP addresses:
 - Host credentials modal is inline in `HostGroupedView.tsx`
 - Both have 3em top padding to keep company selector visible
 
+### Adding Edit/Add to a Modal
+
+1. **Enable inline editing on DataTable:**
+```typescript
+<DataTable
+  editable={true}
+  onCellEdit={(row, columnKey, newValue) =>
+    handleCellEdit('fileKey', row, columnKey, newValue, ['Client', 'Name'])
+  }
+  onAdd={() => setAddModalType('fileKey')}
+/>
+```
+
+2. **For merged views, create custom edit handler:**
+```typescript
+const handleMyMergedEdit = useCallback(async (row, columnKey, newValue) => {
+  // Route to correct file based on columnKey
+  if (fieldFromFile1[columnKey]) {
+    fileKey = 'file1';
+    rowIdentifier = { Client: row._file1Client, Name: row._file1Name };
+  } else {
+    fileKey = 'file2';
+    rowIdentifier = { Client: row._file2Client, Name: row._file2Name };
+  }
+  // Call update API...
+}, [fetchClientData]);
+```
+
+3. **Add AddRecordModal with required fields:**
+```typescript
+<AddRecordModal
+  isOpen={addModalType === 'fileKey'}
+  onClose={() => setAddModalType(null)}
+  onSave={(data) => handleAddRecord('fileKey', data)}
+  title="Add New Item"
+  fields={[
+    { key: 'Name', label: 'Name', required: true },
+    // ... other fields
+  ]}
+  autoFilledFields={{ Client: selectedClient }}
+/>
+```
+
 ## Code Patterns
 
 ### Excel Reading with Cache
@@ -338,10 +474,12 @@ interface Props {
 ## Important Notes
 
 1. **Excel as Data Store** - System reads/writes Excel files directly, no database migration planned
-2. **Password Fields** - Mask in UI, show/hide toggle, never log plaintext
+2. **Password Fields** - Mask in UI, show/hide toggle, clear text when editing, never log plaintext
 3. **Client Filter** - Nearly all data is filtered by client abbreviation
 4. **Modal Top Padding** - 3em padding keeps company selector visible on 1080p
 5. **Resource Tracking** - VMs use actual values, containers/daemons use configurable defaults
+6. **Row Identification** - Edits use composite keys (e.g., `Client` + `Name`) to find rows in Excel
+7. **UNC Paths** - Excel writes use buffer + `fs.writeFileSync` for network drive compatibility
 
 ## Files to Review First
 
@@ -367,6 +505,11 @@ interface Props {
 - Domain/Active Directory modal
 - User menu dropdown with theme selector
 - Dashboard section renaming (Servers/Switches, Firewalls/Routers)
+- **Inline cell editing** (double-click to edit, saves to Excel)
+- **Add record functionality** (Servers/Switches, Firewalls/Routers)
+- **Excel write operations** with UNC path support
+- **Merged view editing** (Workstations+Users, Firewalls/Routers with IntIP)
+- **Data refresh after edits** with cache-busting
 
 **In Progress:**
 - Server/Client executable packaging (reference multi-user-timesheet project)

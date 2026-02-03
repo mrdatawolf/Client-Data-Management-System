@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 interface Column {
   key: string;
@@ -9,6 +9,7 @@ interface Column {
   sortable?: boolean;
   filterable?: boolean;
   hidden?: boolean;
+  editable?: boolean; // Whether this column can be edited (default: true for non-hidden columns)
 }
 
 export interface SortConfig {
@@ -22,6 +23,7 @@ interface DataTableProps {
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
   onAdd?: () => void;
+  onInactivate?: (row: any) => Promise<boolean> | boolean; // Mark row as inactive
   rowsPerPageOptions?: number[];
   enablePasswordMasking?: boolean;
   enableSearch?: boolean;
@@ -31,6 +33,10 @@ interface DataTableProps {
   tableId?: string;
   defaultSort?: SortConfig;
   onSortChange?: (tableId: string, sortConfig: SortConfig | null) => void;
+  // Inline editing props
+  editable?: boolean;
+  onCellEdit?: (row: any, columnKey: string, newValue: any, originalRow: any) => Promise<boolean> | boolean;
+  rowIdentifier?: string; // Key to use for identifying rows (e.g., 'Name', 'IP address')
 }
 
 export function DataTable({
@@ -39,6 +45,7 @@ export function DataTable({
   onEdit,
   onDelete,
   onAdd,
+  onInactivate,
   rowsPerPageOptions = [50, 100, 200],
   enablePasswordMasking = true,
   enableSearch = true,
@@ -47,6 +54,9 @@ export function DataTable({
   tableId,
   defaultSort,
   onSortChange,
+  editable = false,
+  onCellEdit,
+  rowIdentifier,
 }: DataTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
@@ -54,6 +64,20 @@ export function DataTable({
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[0]);
   const [maskedPasswords, setMaskedPasswords] = useState<Set<string>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; columnKey: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingCell && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingCell]);
 
   // Toggle password visibility for a specific row
   const togglePasswordVisibility = (rowIndex: number, columnKey: string) => {
@@ -176,7 +200,64 @@ export function DataTable({
     URL.revokeObjectURL(url);
   };
 
+  // Inline editing handlers
+  const handleCellDoubleClick = (rowIndex: number, columnKey: string, currentValue: any, column: Column) => {
+    if (!editable || !onCellEdit) return;
+    if (column.editable === false) return;
+
+    setEditingCell({ rowIndex, columnKey });
+    setEditValue(currentValue != null ? String(currentValue) : '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingCell || !onCellEdit || isSaving) return;
+
+    const row = paginatedData[editingCell.rowIndex];
+    const originalValue = row[editingCell.columnKey];
+
+    // Don't save if value hasn't changed
+    if (String(originalValue || '') === editValue) {
+      setEditingCell(null);
+      setEditValue('');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const success = await onCellEdit(row, editingCell.columnKey, editValue, row);
+      if (success) {
+        setEditingCell(null);
+        setEditValue('');
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEditSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleEditCancel();
+    } else if (e.key === 'Tab') {
+      // Save current cell and move to next editable cell
+      e.preventDefault();
+      handleEditSave();
+      // TODO: Could implement tab navigation to next cell
+    }
+  };
+
   const visibleColumns = columns.filter(c => !c.hidden);
+  const isEditable = editable && onCellEdit;
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -215,6 +296,13 @@ export function DataTable({
             </button>
           )}
         </div>
+
+        {/* Edit mode indicator */}
+        {isEditable && (
+          <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded">
+            Double-click cells to edit
+          </div>
+        )}
       </div>
 
       {/* Table Container */}
@@ -236,7 +324,7 @@ export function DataTable({
                   </div>
                 </th>
               ))}
-              {(onEdit || onDelete) && (
+              {(onEdit || onDelete || onInactivate) && (
                 <th className="px-4 py-3 text-right font-semibold text-xs text-gray-700 dark:text-gray-300">
                   Actions
                 </th>
@@ -251,13 +339,34 @@ export function DataTable({
                     const value = row[col.key];
                     const isPassword = col.type === 'password';
                     const isMasked = maskedPasswords.has(`${rowIndex}-${col.key}`);
+                    const isEditingThis = editingCell?.rowIndex === rowIndex && editingCell?.columnKey === col.key;
+                    const isCellEditable = isEditable && col.editable !== false;
 
                     return (
                       <td
                         key={col.key}
-                        className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''}`}
+                        onDoubleClick={() => isCellEditable && handleCellDoubleClick(rowIndex, col.key, value, col)}
+                        className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCellEditable && !isEditingThis ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
                       >
-                        {isPassword && enablePasswordMasking ? (
+                        {isEditingThis ? (
+                          // Editing mode - use relative positioning so input can overflow cell
+                          <div className="relative">
+                            <input
+                              ref={editInputRef}
+                              type={isPassword ? 'text' : col.type === 'number' ? 'number' : 'text'}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={handleEditKeyDown}
+                              onBlur={handleEditSave}
+                              disabled={isSaving}
+                              className={`min-w-[200px] w-max px-2 py-1 text-sm border-2 border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none shadow-lg ${isSaving ? 'opacity-50' : ''}`}
+                              autoFocus
+                            />
+                            {isSaving && (
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 animate-pulse">...</span>
+                            )}
+                          </div>
+                        ) : isPassword && enablePasswordMasking ? (
                           <div className="flex items-center gap-2">
                             <span className="font-mono">
                               {isMasked ? value || '-' : '••••••••'}
@@ -285,7 +394,7 @@ export function DataTable({
                       </td>
                     );
                   })}
-                  {(onEdit || onDelete) && (
+                  {(onEdit || onDelete || onInactivate) && (
                     <td className="px-4 py-3 text-right">
                       <div className="flex gap-2 justify-end">
                         {onEdit && (
@@ -294,6 +403,19 @@ export function DataTable({
                             className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white border-none rounded cursor-pointer transition-colors"
                           >
                             Edit
+                          </button>
+                        )}
+                        {onInactivate && (
+                          <button
+                            onClick={async () => {
+                              if (confirm('Mark this item as inactive? It will be hidden from view.')) {
+                                await onInactivate(row);
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white border-none rounded cursor-pointer transition-colors"
+                            title="Mark as inactive (hide from view)"
+                          >
+                            Archive
                           </button>
                         )}
                         {onDelete && (
@@ -312,7 +434,7 @@ export function DataTable({
             ) : (
               <tr>
                 <td
-                  colSpan={visibleColumns.length + (onEdit || onDelete ? 1 : 0)}
+                  colSpan={visibleColumns.length + (onEdit || onDelete || onInactivate ? 1 : 0)}
                   className="p-12 text-center text-gray-400 dark:text-gray-500 italic"
                 >
                   {searchQuery || Object.keys(columnFilters).length > 0

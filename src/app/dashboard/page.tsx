@@ -6,6 +6,7 @@ import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable, SortConfig } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
 import { TitleEater } from "@/components/EasterEggs";
+import { AddRecordModal } from "@/components/AddRecordModal";
 import { useTheme } from "@/hooks/useTheme";
 import { PREFERENCE_KEYS, Theme } from "@/types/preferences";
 
@@ -58,6 +59,9 @@ export default function DashboardPage() {
   const [miscTab, setMiscTab] = useState<'services' | 'domains' | 'cameras' | 'documents'>('services');
   const [reportsTab, setReportsTab] = useState<'inactive' | 'missingData' | 'mfaStatus' | 'firmware' | 'resources' | 'passwordAge' | 'win11'>('inactive');
 
+  // Add record modal state
+  const [addModalType, setAddModalType] = useState<string | null>(null);
+
   // Sort preferences state (user's saved sort preferences per table)
   const [sortPreferences, setSortPreferences] = useState<Record<string, SortConfig>>({});
 
@@ -100,49 +104,32 @@ export default function DashboardPage() {
     }
   }, [sortPreferences]);
 
-  // Helper function to sort by IP address (handles IP comparison properly)
-  const sortByIP = useCallback((data: any[], ipField: string) => {
-    return [...data].sort((a, b) => {
-      const ipA = a[ipField] || '';
-      const ipB = b[ipField] || '';
-      // Convert IP to numeric for proper sorting (e.g., 192.168.1.10 vs 192.168.1.2)
-      const ipToNum = (ip: string) => {
-        const parts = ip.split('.');
-        if (parts.length !== 4) return 0;
-        return parts.reduce((acc, part) => acc * 256 + parseInt(part, 10) || 0, 0);
-      };
-      return ipToNum(ipA) - ipToNum(ipB);
-    });
-  }, []);
-
-  // Sorted data for dashboard panels
-  const sortedCoreInfra = useMemo(() => sortByIP(coreInfra, 'IP address'), [coreInfra, sortByIP]);
-  const sortedWorkstationsUsers = useMemo(() => sortByIP(workstationsUsers, 'ipAddress'), [workstationsUsers, sortByIP]);
-  const sortedExternalInfo = useMemo(() => sortByIP(externalInfo, 'IntIP'), [externalInfo, sortByIP]);
-
-  // Extract data fetching into reusable function
-  const fetchClientData = () => {
+  // Extract data fetching into reusable function - must be defined before handlers that use it
+  const fetchClientData = useCallback(() => {
     if (!selectedClient) return;
 
     setLoadingData(true);
 
-    // Fetch all data in parallel
+    // Add cache-busting timestamp to prevent stale data after edits
+    const cacheBuster = `&_t=${Date.now()}`;
+
+    // Fetch all data in parallel (no-store prevents caching)
     Promise.all([
-      fetch(`/api/data/external-info?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/core?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/workstations-users?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/managed-info?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/admin-credentials?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/guacamole?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/devices?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/containers?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/vms?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/daemons?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/services?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/domains?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/emails?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/users?client=${selectedClient}`).then(res => res.json())
+      fetch(`/api/data/external-info?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/core?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/workstations-users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/managed-info?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/admin-credentials?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/guacamole?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/devices?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/containers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/vms?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/daemons?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/services?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/domains?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/cameras?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/emails?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
     ])
       .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData]) => {
         console.log("Admin credentials response:", adminData); // Debug log
@@ -192,7 +179,290 @@ export default function DashboardPage() {
         setUsers([]);
         setLoadingData(false);
       });
-  };
+  }, [selectedClient]);
+
+  // Handle inline cell edit - save to Excel via API
+  const handleCellEdit = useCallback(async (
+    fileKey: string,
+    row: any,
+    columnKey: string,
+    newValue: any,
+    identifierKeys: string[]
+  ): Promise<boolean> => {
+    // Build row identifier from specified keys
+    const rowIdentifier: Record<string, any> = {};
+    for (const key of identifierKeys) {
+      if (row[key] !== undefined) {
+        rowIdentifier[key] = row[key];
+      }
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh data to show the update
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle workstationsUsers cell edit - routes to correct Excel file based on field
+  const handleWorkstationsUsersEdit = useCallback(async (
+    row: any,
+    columnKey: string,
+    newValue: any
+  ): Promise<boolean> => {
+    // Map from merged view column names to original Excel column names and file keys
+    const workstationFields: Record<string, string> = {
+      'computerName': 'Computer Name',
+      'ipAddress': 'IP Address',
+      'cpu': 'CPU',
+      'serviceTag': 'Service Tag',
+      'description': 'Description',
+      'win11Capable': 'Win11 Capable',
+    };
+
+    const userFields: Record<string, string> = {
+      'username': 'Login',
+      'fullName': 'Name',
+      'phone': 'Phone',
+      'location': 'SubName', // Location comes from users when available
+    };
+
+    let fileKey: string;
+    let excelColumnKey: string;
+    let rowIdentifier: Record<string, any>;
+
+    if (workstationFields[columnKey]) {
+      // Update workstations.xlsx
+      fileKey = 'workstations';
+      excelColumnKey = workstationFields[columnKey];
+      rowIdentifier = {
+        'Client': row._wsClient,
+        'Computer Name': row._wsComputerName,
+      };
+    } else if (userFields[columnKey]) {
+      // Update users.xlsx
+      fileKey = 'users';
+      excelColumnKey = userFields[columnKey];
+      rowIdentifier = {
+        'Client': row._userClient,
+        'Login': row._userLogin,
+      };
+
+      // Can't edit user fields if no user is assigned
+      if (!row._userLogin) {
+        alert('Cannot edit user fields - no user is assigned to this workstation.');
+        return false;
+      }
+    } else {
+      console.warn(`Unknown column key for workstationsUsers: ${columnKey}`);
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey: excelColumnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle externalInfo cell edit - routes IntIP to Core file
+  const handleExternalInfoEdit = useCallback(async (
+    row: any,
+    columnKey: string,
+    newValue: any
+  ): Promise<boolean> => {
+    let fileKey: string;
+    let excelColumnKey: string;
+    let rowIdentifier: Record<string, any>;
+
+    if (columnKey === 'IntIP') {
+      // IntIP comes from Core.xlsx - update there
+      if (!row._coreName) {
+        alert('Cannot edit Internal IP - no matching core infrastructure item found.');
+        return false;
+      }
+      fileKey = 'core';
+      excelColumnKey = 'IP address';
+      rowIdentifier = {
+        'Client': row._coreClient,
+        'Name': row._coreName,
+      };
+    } else {
+      // All other fields are in externalInfo.xlsx
+      fileKey = 'externalInfo';
+      excelColumnKey = columnKey;
+      rowIdentifier = {
+        'Client': row.Client,
+        'SubName': row.SubName,
+        'Device Type': row['Device Type'],
+      };
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey: excelColumnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle adding a new record
+  const handleAddRecord = useCallback(async (
+    fileKey: string,
+    rowData: Record<string, any>
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addRow',
+          fileKey,
+          rowData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to add record');
+      }
+    } catch (error: any) {
+      console.error('Failed to add record:', error);
+      throw error;
+    }
+  }, [fetchClientData]);
+
+  // Handle marking a record as inactive (archive)
+  const handleInactivate = useCallback(async (
+    fileKey: string,
+    row: any,
+    identifierKeys: string[]
+  ): Promise<boolean> => {
+    // Build row identifier from specified keys
+    const rowIdentifier: Record<string, any> = {};
+    for (const key of identifierKeys) {
+      if (row[key] !== undefined) {
+        rowIdentifier[key] = row[key];
+      }
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'setInactive',
+          fileKey,
+          rowIdentifier,
+          inactive: 1,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to archive: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to archive record:', error);
+      alert('Failed to archive. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Helper function to sort by IP address (handles IP comparison properly)
+  const sortByIP = useCallback((data: any[], ipField: string) => {
+    return [...data].sort((a, b) => {
+      const ipA = a[ipField] || '';
+      const ipB = b[ipField] || '';
+      // Convert IP to numeric for proper sorting (e.g., 192.168.1.10 vs 192.168.1.2)
+      const ipToNum = (ip: string) => {
+        const parts = ip.split('.');
+        if (parts.length !== 4) return 0;
+        return parts.reduce((acc, part) => acc * 256 + parseInt(part, 10) || 0, 0);
+      };
+      return ipToNum(ipA) - ipToNum(ipB);
+    });
+  }, []);
+
+  // Sorted data for dashboard panels
+  const sortedCoreInfra = useMemo(() => sortByIP(coreInfra, 'IP address'), [coreInfra, sortByIP]);
+  const sortedWorkstationsUsers = useMemo(() => sortByIP(workstationsUsers, 'ipAddress'), [workstationsUsers, sortByIP]);
+  const sortedExternalInfo = useMemo(() => sortByIP(externalInfo, 'IntIP'), [externalInfo, sortByIP]);
 
   // Save selected client to localStorage and server
   const saveClientPreference = useCallback(async (client: string) => {
@@ -874,7 +1144,7 @@ export default function DashboardPage() {
           data={coreInfra}
           columns={[
             { key: 'SubName', label: 'Location', sortable: true },
-            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Name', label: 'Name', sortable: true, editable: false },
             { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
             { key: 'Machine Name / MAC', label: 'Machine Name/MAC', sortable: true },
             { key: 'Service Tag', label: 'Service Tag', sortable: true },
@@ -888,23 +1158,18 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + row.Name);
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row.Name}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new infrastructure item.');
-          }}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="coreInfra"
           defaultSort={getSortConfig('coreInfra')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('core', row, columnKey, newValue, ['Client', 'Name'])
+          }
+          onAdd={() => setAddModalType('core')}
+          onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
         />
       </FullPageModal>
 
@@ -916,12 +1181,11 @@ export default function DashboardPage() {
         <DataTable
           data={workstationsUsers}
           columns={[
-            { key: 'computerName', label: 'Computer Name', sortable: true },
+            { key: 'computerName', label: 'Computer Name', sortable: true, editable: false },
             { key: 'location', label: 'Location', sortable: true },
-            { key: 'username', label: 'Username', sortable: true },
+            { key: 'username', label: 'Username', sortable: true, editable: false },
             { key: 'fullName', label: 'Full Name', sortable: true },
-            { key: 'email', label: 'Email', type: 'email', sortable: true },
-            { key: 'os', label: 'Operating System', sortable: true },
+            { key: 'email', label: 'Email', type: 'email', sortable: true, editable: false },
             { key: 'ipAddress', label: 'IP Address', type: 'ip', sortable: true },
             { key: 'serviceTag', label: 'Service Tag', sortable: true },
             { key: 'cpu', label: 'CPU', sortable: true },
@@ -944,6 +1208,9 @@ export default function DashboardPage() {
           tableId="workstationsUsers"
           defaultSort={getSortConfig('workstationsUsers')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={handleWorkstationsUsersEdit}
+          onInactivate={(row) => handleInactivate('workstations', { Client: row._wsClient, 'Computer Name': row._wsComputerName }, ['Client', 'Computer Name'])}
         />
       </FullPageModal>
 
@@ -955,7 +1222,7 @@ export default function DashboardPage() {
         <DataTable
           data={externalInfo}
           columns={[
-            { key: 'SubName', label: 'Location', sortable: true },
+            { key: 'SubName', label: 'Location', sortable: true, editable: false },
             { key: 'Connection Type', label: 'Connection Type', sortable: true },
             { key: 'Device Type', label: 'Device Type', sortable: true },
             { key: 'IntIP', label: 'Int IP Address', type: 'ip', sortable: true },
@@ -973,23 +1240,16 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + (row['Device Type'] || 'device'));
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row['Device Type'] || 'this device'}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new firewall/VPN connection.');
-          }}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="externalInfo"
           defaultSort={getSortConfig('externalInfo')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={handleExternalInfoEdit}
+          onAdd={() => setAddModalType('externalInfo')}
+          onInactivate={(row) => handleInactivate('externalInfo', row, ['Client', 'SubName', 'Device Type'])}
         />
       </FullPageModal>
 
@@ -1027,6 +1287,7 @@ export default function DashboardPage() {
           enablePasswordMasking={false}
           enableSearch={true}
           enableExport={true}
+          onInactivate={(row) => handleInactivate('managedInfo', row, ['Client', 'Provider'])}
         />
       </FullPageModal>
 
@@ -1054,6 +1315,7 @@ export default function DashboardPage() {
                 onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
                 onAdd={() => alert('Add Admin Email (mockup)')}
                 rowsPerPageOptions={[25, 50]}
+                onInactivate={(row) => handleInactivate('adminEmails', row, ['Client', 'Email'])}
               />
             </div>
           </div>
@@ -1077,6 +1339,7 @@ export default function DashboardPage() {
                   onAdd={() => alert('Add Mitel Login (mockup)')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('adminMitelLogins', row, ['Client', 'Login'])}
                 />
               </div>
             </div>
@@ -1098,6 +1361,7 @@ export default function DashboardPage() {
                   onAdd={() => alert('Add Acronis Backup (mockup)')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('acronisBackups', row, ['Client', 'UserName'])}
                 />
               </div>
             </div>
@@ -1119,6 +1383,7 @@ export default function DashboardPage() {
                   onAdd={() => alert('Add Cloudflare Admin (mockup)')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('cloudflareAdmins', row, ['Client', 'username'])}
                 />
               </div>
             </div>
@@ -1199,6 +1464,7 @@ export default function DashboardPage() {
                 enablePasswordMasking={true}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
               />
             )}
 
@@ -1215,6 +1481,7 @@ export default function DashboardPage() {
                 enablePasswordMasking={false}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('domains', row, ['Client', 'Domain Name'])}
               />
             )}
 
@@ -1239,6 +1506,7 @@ export default function DashboardPage() {
                 enablePasswordMasking={true}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('cameras', row, ['Client', 'Name'])}
               />
             )}
 
@@ -1285,7 +1553,7 @@ export default function DashboardPage() {
         <DataTable
           data={devices}
           columns={[
-            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Name', label: 'Name', sortable: true, editable: false },
             { key: 'IP address', label: 'IP Address', type: 'ip', sortable: true },
             { key: 'Machine Name / MAC', label: 'Machine Name/MAC', sortable: true },
             { key: 'Service Tag', label: 'Service Tag', sortable: true },
@@ -1298,15 +1566,17 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Device (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="devices"
           defaultSort={getSortConfig('devices')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('devices', row, columnKey, newValue, ['Client', 'Name'])
+          }
+          onInactivate={(row) => handleInactivate('devices', row, ['client', 'Name'])}
         />
       </FullPageModal>
 
@@ -1332,7 +1602,7 @@ export default function DashboardPage() {
           data={emails}
           columns={[
             { key: 'Username', label: 'Username', sortable: true },
-            { key: 'Email', label: 'Email', type: 'email', sortable: true },
+            { key: 'Email', label: 'Email', type: 'email', sortable: true, editable: false },
             { key: 'Name', label: 'Name', sortable: true },
             { key: 'Password', label: 'Password', type: 'password', sortable: false },
             { key: 'Notes', label: 'Notes', sortable: true },
@@ -1343,15 +1613,17 @@ export default function DashboardPage() {
             { key: 'POP_override', label: 'POP Override', sortable: true },
             { key: 'SMTP_override', label: 'SMTP Override', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Email)}
-          onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Email (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="emails"
           defaultSort={getSortConfig('emails')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('emails', row, columnKey, newValue, ['Client', 'Email'])
+          }
+          onInactivate={(row) => handleInactivate('emails', row, ['Client', 'Email'])}
         />
       </FullPageModal>
 
@@ -1363,22 +1635,24 @@ export default function DashboardPage() {
         <DataTable
           data={services}
           columns={[
-            { key: 'Service', label: 'Service', sortable: true },
+            { key: 'Service', label: 'Service', sortable: true, editable: false },
             { key: 'Username', label: 'Username', sortable: true },
             { key: 'Password', label: 'Password', type: 'password', sortable: false },
             { key: 'Host / URL', label: 'Host/URL', sortable: true },
             { key: 'Date of last known change', label: 'Last Changed', sortable: true },
             { key: 'Notes', label: 'Notes', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Service)}
-          onDelete={(row) => confirm(`Delete ${row.Service}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Service (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="servicesModal"
           defaultSort={getSortConfig('servicesModal')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('services', row, columnKey, newValue, ['Client', 'Service'])
+          }
+          onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
         />
       </FullPageModal>
 
@@ -1391,7 +1665,7 @@ export default function DashboardPage() {
           data={users}
           columns={[
             { key: 'Name', label: 'Name', sortable: true },
-            { key: 'Login', label: 'Login', sortable: true },
+            { key: 'Login', label: 'Login', sortable: true, editable: false },
             { key: 'Password', label: 'Password', type: 'password', sortable: false },
             { key: 'Computer Name', label: 'Computer', sortable: true },
             { key: 'SubName', label: 'Location', sortable: true },
@@ -1403,15 +1677,17 @@ export default function DashboardPage() {
             { key: 'Active', label: 'Active', sortable: true },
             { key: 'Grouping', label: 'Grouping', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New User (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="usersModal"
           defaultSort={getSortConfig('usersModal')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('users', row, columnKey, newValue, ['Client', 'Login'])
+          }
+          onInactivate={(row) => handleInactivate('users', row, ['Client', 'Login'])}
         />
       </FullPageModal>
 
@@ -1461,6 +1737,7 @@ export default function DashboardPage() {
               tableId="domainAD"
               defaultSort={getSortConfig('domainAD')}
               onSortChange={handleSortChange}
+              onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
             />
           </div>
         </div>
@@ -1913,6 +2190,61 @@ export default function DashboardPage() {
           </div>
         </div>
       </FullPageModal>
+
+      {/* Add Record Modals */}
+      <AddRecordModal
+        isOpen={addModalType === 'externalInfo'}
+        onClose={() => setAddModalType(null)}
+        onSave={async (data) => {
+          return handleAddRecord('externalInfo', data);
+        }}
+        title="Add Firewall/Router"
+        fields={[
+          { key: 'SubName', label: 'Location', required: true, placeholder: 'e.g., Main Office' },
+          { key: 'Device Type', label: 'Device Type', required: true, placeholder: 'e.g., Firewall, Router' },
+          { key: 'Connection Type', label: 'Connection Type', placeholder: 'e.g., Static, DHCP' },
+          { key: 'IP address', label: 'External IP Address', type: 'ip', required: true, placeholder: 'e.g., 203.0.113.1' },
+          { key: 'Port', label: 'Port', type: 'number', placeholder: 'e.g., 443' },
+          { key: 'Username', label: 'Username', placeholder: 'Admin username' },
+          { key: 'Password', label: 'Password', type: 'password', placeholder: 'Admin password' },
+          { key: 'VPN Port', label: 'VPN Port', type: 'number', placeholder: 'e.g., 500' },
+          { key: 'VPN Username', label: 'VPN Username', placeholder: 'VPN username' },
+          { key: 'VPN Password', label: 'VPN Password', type: 'password', placeholder: 'VPN password' },
+          { key: 'VPN Domain', label: 'VPN Domain', placeholder: 'VPN domain' },
+          { key: 'Current Version', label: 'Firmware Version', placeholder: 'e.g., 7.2.1' },
+          { key: 'Grouping', label: 'Grouping', placeholder: 'Custom grouping' },
+          { key: 'Asset ID', label: 'Asset ID', placeholder: 'Asset tracking ID' },
+          { key: 'Notes', label: 'Notes', type: 'textarea', placeholder: 'Additional notes' },
+          { key: 'Notes 2', label: 'Notes 2', type: 'textarea', placeholder: 'Additional notes' },
+        ]}
+        autoFilledFields={{ Client: selectedClient }}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'core'}
+        onClose={() => setAddModalType(null)}
+        onSave={async (data) => {
+          return handleAddRecord('core', data);
+        }}
+        title="Add Server/Switch"
+        fields={[
+          { key: 'Name', label: 'Name', required: true, placeholder: 'e.g., DC01, Switch-Main' },
+          { key: 'SubName', label: 'Location', required: true, placeholder: 'e.g., Main Office, Server Room' },
+          { key: 'IP address', label: 'IP Address', type: 'ip', required: true, placeholder: 'e.g., 192.168.1.10' },
+          { key: 'Machine Name / MAC', label: 'Machine Name/MAC', placeholder: 'Hostname or MAC address' },
+          { key: 'Service Tag', label: 'Service Tag', placeholder: 'Dell/HP service tag' },
+          { key: 'Description', label: 'Description', placeholder: 'Server role or purpose' },
+          { key: 'Login', label: 'Login', placeholder: 'Admin username' },
+          { key: 'Password', label: 'Password', type: 'password', placeholder: 'Admin password' },
+          { key: 'Alt Login', label: 'Alt Login', placeholder: 'Alternative username' },
+          { key: 'Alt Passwd', label: 'Alt Password', type: 'password', placeholder: 'Alternative password' },
+          { key: 'Grouping', label: 'Grouping', placeholder: 'Custom grouping' },
+          { key: 'Asset ID', label: 'Asset ID', placeholder: 'Asset tracking ID' },
+          { key: 'Notes', label: 'Notes', type: 'textarea', placeholder: 'Additional notes' },
+          { key: 'Notes 2', label: 'Notes 2', type: 'textarea', placeholder: 'Additional notes' },
+        ]}
+        autoFilledFields={{ Client: selectedClient }}
+      />
     </div>
   );
 }
