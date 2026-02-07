@@ -155,7 +155,7 @@ The main dashboard has a compact header (h-16 = 64px) with integrated controls:
 - **Domain Display** - Clickable div showing domain info, opens Domain/AD modal
   - Stacked layout: "Domain:" label on top, domain name below
 - **Refresh Button** - Reloads client data
-- **Navigation Buttons** - Quick access to Guacamole, Misc, Devices, VMs, Emails, Services, Users modals
+- **Navigation Buttons** - Quick access to Guacamole, Misc, Devices, VMs, Emails, Services, Users, Workstations modals
 - **User Menu** - Clickable username dropdown with theme toggle and logout
 
 **Dashboard Panels (70% top / 30% bottom):**
@@ -191,7 +191,9 @@ const { theme, setTheme } = useTheme();
 |-------|-------------|------------|
 | Emails | Email.xlsx | Username, Email, Password, MFA, Active |
 | Services | Services.xlsx | Service, Username, Password, Host/URL |
-| Users | Users.xlsx | Name, Login, Password, Computer, Phone |
+| Users | Users.xlsx + Workstations.xlsx | Name, Login, Password, Computer, Phone (expandable: linked workstations) |
+| Workstations | Workstations.xlsx + Users.xlsx | Computer Name, IP, CPU, Service Tag (expandable: linked users) |
+| Workstations + Users | Merged view | Computer, IP, Users count (expandable: all assigned users per workstation) |
 | VMs/Containers | VMs.xlsx, Containers.xlsx, Daemons.xlsx | Grouped by host server |
 | Domain/AD | Core.xlsx (AD Server=1), Domains.xlsx | Server Name, IP, Login, Password |
 
@@ -270,6 +272,63 @@ The external-info API enriches firewall/router data with internal IP addresses:
 - Matches by `SubName` (location) and device type keywords
 - Adds `IntIP` field from matching Core item's IP address
 - Displayed in the Firewalls/Routers dashboard panel
+
+### Inline Editing & CRUD Operations
+The system supports full read/write to Excel files:
+
+**Inline Cell Editing (DataTable):**
+- Double-click any editable cell to edit in place
+- Enter to save, Escape to cancel, Tab to save and move
+- Yellow indicator bar shows "Double-click cells to edit"
+- Column-level control via `editable: false` on column config
+
+**Excel Write Functions (`src/lib/excel/reader.ts`):**
+- `updateExcelCell()` - Update a single cell by row identifier
+- `updateExcelRow()` - Update an entire row
+- `addExcelRow()` - Append a new row
+- `deleteExcelRow()` - Remove a row
+- `ensureColumnExists()` - Auto-create missing columns
+
+**Archive (Inactive) System:**
+- Archive button sets `Inactive=1` on a row (calls `ensureColumnExists` first)
+- `filterOutInactive()` hides rows where `Inactive=1` from all views
+- All API routes apply `filterOutInactive` after filtering by client
+- Update API at `POST /api/data/update` with `action: 'setInactive'`
+
+**Add Record Modal (`AddRecordModal.tsx`):**
+- Generic modal for creating new records
+- Field types: text, password, number, ip, email, url, textarea
+- Required field validation, auto-filled fields (e.g., Client)
+- Used for Core Infrastructure and External Info add operations
+
+### Expandable Rows (DataTable)
+The DataTable supports expandable rows for showing related data:
+
+```typescript
+<DataTable
+  expandable={true}
+  expandedRowRenderer={(row) => <YourSubContent row={row} />}
+/>
+```
+
+- Click the triangle arrow on the left to expand/collapse
+- Generic feature - any DataTable can use it
+- Used in three modals for many-to-many workstation-user relationships
+
+### Many-to-Many Workstation-User Relationships
+Workstations and Users have a many-to-many relationship (one computer can have multiple users, one user can be on multiple computers). This is handled via cross-referencing:
+
+**API enrichment pattern:**
+- `/api/data/workstations-users` - Merged view: workstation-centric with `users[]` array per row
+- `/api/data/workstations` - Raw workstations enriched with `_users[]` array
+- `/api/data/users` - Raw users enriched with `_workstations[]` array
+- All matching is case-insensitive and whitespace-trimmed on `Computer Name`
+
+**Dashboard display:**
+- **Workstations + Users modal**: Shows "N users" or username per row, expand for full user list
+- **Workstations modal**: Shows user count column, expand for all users on that machine
+- **Users modal**: Expand to see workstation details (IP, CPU, Service Tag, Win11 status)
+- **Dashboard panel**: Users column shows username / "N users" / "No user" inline
 
 ## Common Tasks
 
@@ -367,6 +426,14 @@ interface Props {
 - Domain/Active Directory modal
 - User menu dropdown with theme selector
 - Dashboard section renaming (Servers/Switches, Firewalls/Routers)
+- Inline cell editing (double-click to edit) across all DataTables
+- Excel write operations (update cell, update row, add row, delete row)
+- Archive/Inactive system (set Inactive=1, filter from views)
+- Add Record modal for Core Infrastructure and External Info
+- Standalone Workstations modal (raw data view)
+- Many-to-many workstation-user relationships with expandable rows
+- Cross-referenced data in Users, Workstations, and Workstations+Users modals
+- Case-insensitive, whitespace-trimmed matching for Computer Name joins
 
 **In Progress:**
 - Server/Client executable packaging (reference multi-user-timesheet project)

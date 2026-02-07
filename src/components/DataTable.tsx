@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, Fragment, type ReactNode } from "react";
 
 interface Column {
   key: string;
@@ -9,6 +9,7 @@ interface Column {
   sortable?: boolean;
   filterable?: boolean;
   hidden?: boolean;
+  editable?: boolean;
 }
 
 export interface SortConfig {
@@ -20,8 +21,8 @@ interface DataTableProps {
   data: any[];
   columns: Column[];
   onEdit?: (row: any) => void;
-  onDelete?: (row: any) => void;
   onAdd?: () => void;
+  onInactivate?: (row: any) => Promise<boolean> | boolean;
   rowsPerPageOptions?: number[];
   enablePasswordMasking?: boolean;
   enableSearch?: boolean;
@@ -31,14 +32,20 @@ interface DataTableProps {
   tableId?: string;
   defaultSort?: SortConfig;
   onSortChange?: (tableId: string, sortConfig: SortConfig | null) => void;
+  // Inline editing props
+  editable?: boolean;
+  onCellEdit?: (row: any, columnKey: string, newValue: any, originalRow: any) => Promise<boolean> | boolean;
+  // Expandable row props
+  expandable?: boolean;
+  expandedRowRenderer?: (row: any) => ReactNode;
 }
 
 export function DataTable({
   data,
   columns,
   onEdit,
-  onDelete,
   onAdd,
+  onInactivate,
   rowsPerPageOptions = [50, 100, 200],
   enablePasswordMasking = true,
   enableSearch = true,
@@ -47,6 +54,10 @@ export function DataTable({
   tableId,
   defaultSort,
   onSortChange,
+  editable = false,
+  onCellEdit,
+  expandable = false,
+  expandedRowRenderer,
 }: DataTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
@@ -54,6 +65,35 @@ export function DataTable({
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[0]);
   const [maskedPasswords, setMaskedPasswords] = useState<Set<string>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+
+  // Expandable rows state
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRowExpanded = (rowIndex: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(rowIndex)) {
+        next.delete(rowIndex);
+      } else {
+        next.add(rowIndex);
+      }
+      return next;
+    });
+  };
+
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; columnKey: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingCell && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingCell]);
 
   // Toggle password visibility for a specific row
   const togglePasswordVisibility = (rowIndex: number, columnKey: string) => {
@@ -176,7 +216,63 @@ export function DataTable({
     URL.revokeObjectURL(url);
   };
 
+  // Inline editing handlers
+  const handleCellDoubleClick = (rowIndex: number, columnKey: string, currentValue: any, column: Column) => {
+    if (!editable || !onCellEdit) return;
+    if (column.editable === false) return;
+
+    setEditingCell({ rowIndex, columnKey });
+    setEditValue(currentValue != null ? String(currentValue) : '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingCell || !onCellEdit || isSaving) return;
+
+    const row = paginatedData[editingCell.rowIndex];
+    const originalValue = row[editingCell.columnKey];
+
+    // Don't save if value hasn't changed
+    if (String(originalValue || '') === editValue) {
+      setEditingCell(null);
+      setEditValue('');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const success = await onCellEdit(row, editingCell.columnKey, editValue, row);
+      if (success) {
+        setEditingCell(null);
+        setEditValue('');
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEditSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleEditCancel();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleEditSave();
+    }
+  };
+
   const visibleColumns = columns.filter(c => !c.hidden);
+  const isEditable = editable && onCellEdit;
+  const hasActions = onEdit || onInactivate;
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -215,6 +311,13 @@ export function DataTable({
             </button>
           )}
         </div>
+
+        {/* Edit mode indicator */}
+        {isEditable && (
+          <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded">
+            Double-click cells to edit
+          </div>
+        )}
       </div>
 
       {/* Table Container */}
@@ -222,6 +325,9 @@ export function DataTable({
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-10">
             <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+              {expandable && expandedRowRenderer && (
+                <th className="px-2 py-3 w-8"></th>
+              )}
               {visibleColumns.map((col) => (
                 <th
                   key={col.key}
@@ -236,7 +342,7 @@ export function DataTable({
                   </div>
                 </th>
               ))}
-              {(onEdit || onDelete) && (
+              {hasActions && (
                 <th className="px-4 py-3 text-right font-semibold text-xs text-gray-700 dark:text-gray-300">
                   Actions
                 </th>
@@ -245,74 +351,125 @@ export function DataTable({
           </thead>
           <tbody className="bg-white dark:bg-gray-800">
             {paginatedData.length > 0 ? (
-              paginatedData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                  {visibleColumns.map((col) => {
-                    const value = row[col.key];
-                    const isPassword = col.type === 'password';
-                    const isMasked = maskedPasswords.has(`${rowIndex}-${col.key}`);
+              paginatedData.map((row, rowIndex) => {
+                const isExpanded = expandedRows.has(rowIndex);
+                const isExpandableRow = expandable && expandedRowRenderer;
+                const totalCols = visibleColumns.length + (hasActions ? 1 : 0) + (isExpandableRow ? 1 : 0);
 
-                    return (
-                      <td
-                        key={col.key}
-                        className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''}`}
-                      >
-                        {isPassword && enablePasswordMasking ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono">
-                              {isMasked ? value || '-' : '••••••••'}
-                            </span>
-                            <button
-                              onClick={() => togglePasswordVisibility(rowIndex, col.key)}
-                              className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                              title={isMasked ? 'Hide' : 'Show'}
-                            >
-                              {isMasked ? '👁️' : '👁️‍🗨️'}
-                            </button>
+                return (
+                  <Fragment key={rowIndex}>
+                    <tr className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      {isExpandableRow && (
+                        <td className="px-2 py-3 w-8 text-center">
+                          <button
+                            onClick={() => toggleRowExpanded(rowIndex)}
+                            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-transparent border-none cursor-pointer text-sm leading-none p-1"
+                            title={isExpanded ? 'Collapse' : 'Expand'}
+                          >
+                            {isExpanded ? '\u25BC' : '\u25B6'}
+                          </button>
+                        </td>
+                      )}
+                      {visibleColumns.map((col) => {
+                        const value = row[col.key];
+                        const isPassword = col.type === 'password';
+                        const isMasked = maskedPasswords.has(`${rowIndex}-${col.key}`);
+                        const isEditingThis = editingCell?.rowIndex === rowIndex && editingCell?.columnKey === col.key;
+                        const isCellEditable = isEditable && col.editable !== false;
+
+                        return (
+                          <td
+                            key={col.key}
+                            onDoubleClick={() => isCellEditable && handleCellDoubleClick(rowIndex, col.key, value, col)}
+                            className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCellEditable && !isEditingThis ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
+                          >
+                            {isEditingThis ? (
+                              <div className="relative">
+                                <input
+                                  ref={editInputRef}
+                                  type={isPassword ? 'text' : col.type === 'number' ? 'number' : 'text'}
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onKeyDown={handleEditKeyDown}
+                                  onBlur={handleEditSave}
+                                  disabled={isSaving}
+                                  className={`min-w-[200px] w-max px-2 py-1 text-sm border-2 border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none shadow-lg ${isSaving ? 'opacity-50' : ''}`}
+                                  autoFocus
+                                />
+                                {isSaving && (
+                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 animate-pulse">...</span>
+                                )}
+                              </div>
+                            ) : isPassword && enablePasswordMasking ? (
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono">
+                                  {isMasked ? value || '-' : '••••••••'}
+                                </span>
+                                <button
+                                  onClick={() => togglePasswordVisibility(rowIndex, col.key)}
+                                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                                  title={isMasked ? 'Hide' : 'Show'}
+                                >
+                                  {isMasked ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                              </div>
+                            ) : col.type === 'url' && value ? (
+                              <a
+                                href={value}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300"
+                              >
+                                {value}
+                              </a>
+                            ) : (
+                              <span title={String(value || '')}>{value || '-'}</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {hasActions && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex gap-2 justify-end">
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row)}
+                                className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white border-none rounded cursor-pointer transition-colors"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {onInactivate && (
+                              <button
+                                onClick={async () => {
+                                  if (confirm('Mark this item as inactive? It will be hidden from view.')) {
+                                    await onInactivate(row);
+                                  }
+                                }}
+                                className="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white border-none rounded cursor-pointer transition-colors"
+                                title="Mark as inactive (hide from view)"
+                              >
+                                Archive
+                              </button>
+                            )}
                           </div>
-                        ) : col.type === 'url' && value ? (
-                          <a
-                            href={value}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300"
-                          >
-                            {value}
-                          </a>
-                        ) : (
-                          <span title={String(value || '')}>{value || '-'}</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                  {(onEdit || onDelete) && (
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex gap-2 justify-end">
-                        {onEdit && (
-                          <button
-                            onClick={() => onEdit(row)}
-                            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white border-none rounded cursor-pointer transition-colors"
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            onClick={() => onDelete(row)}
-                            className="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white border-none rounded cursor-pointer transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))
+                        </td>
+                      )}
+                    </tr>
+                    {isExpandableRow && isExpanded && (
+                      <tr className="bg-gray-50 dark:bg-gray-900/50">
+                        <td colSpan={totalCols} className="px-6 py-3">
+                          {expandedRowRenderer(row)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td
-                  colSpan={visibleColumns.length + (onEdit || onDelete ? 1 : 0)}
+                  colSpan={visibleColumns.length + (hasActions ? 1 : 0) + (expandable && expandedRowRenderer ? 1 : 0)}
                   className="p-12 text-center text-gray-400 dark:text-gray-500 italic"
                 >
                   {searchQuery || Object.keys(columnFilters).length > 0

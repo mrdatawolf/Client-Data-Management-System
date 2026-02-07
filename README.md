@@ -72,19 +72,20 @@ This comprehensive document includes:
 
 ## Development Phases
 
-### Phase 1: PowerBI Replacement (Current)
+### Phase 1: PowerBI Replacement (Complete)
 - Read-only data visualization
-- 4 priority dashboard views
-- Multi-select filters
+- Dashboard with 7+ data sections
+- Client selector with grouped dropdown
 - Authentication system
-- Export functionality
+- CSV export functionality
+- Dark mode with user preferences
 
-### Phase 2: Data Entry (Planned)
-- Create/Update/Delete operations
-- Form-based data entry
-- Inline table editing
-- Audit trail
-- Validation and error handling
+### Phase 2: Data Entry (Complete)
+- Inline table editing (double-click cells)
+- Add Record modal for creating new entries
+- Archive/Inactive system (soft delete with Inactive=1)
+- Excel write-back (updates .xlsx files directly)
+- Many-to-many workstation-user relationships with expandable rows
 
 ## Available Scripts
 
@@ -160,7 +161,12 @@ For questions or issues:
 - **Color-coded clickable section headers** that open full-page modals
 - **Navigation buttons** for quick access to:
   - **Guacamole** - Opens remote access URL from GuacamoleHosts.xlsx
-  - Misc, Devices, Containers, VMs, Billing, Sonicwall, SLG Email Issues (placeholders)
+  - **Misc** - Miscellaneous data
+  - **Devices** - Workstations modal
+  - **VMs** - Virtual Machines, Containers & Daemons
+  - **Emails** - Email configurations
+  - **Services** - Service credentials
+  - **Users** - User accounts
 
 ### Interactive Data Tables (All 5 Modals)
 Each modal includes a fully-featured data table with:
@@ -169,10 +175,10 @@ Each modal includes a fully-featured data table with:
 - ✅ **Pagination** - Navigate large datasets (50/100/200 rows per page)
 - ✅ **Password masking** - Show/hide toggle for sensitive fields
 - ✅ **Export CSV** - Download filtered data
-- ✅ **CRUD operations** (mockup UI - writes to Excel pending):
-  - Add New button (green)
-  - Edit button per row (blue)
-  - Delete button per row (red with confirmation)
+- ✅ **Inline editing** - Double-click any cell to edit, saves directly to Excel
+- ✅ **Add Record** - Modal form for creating new entries
+- ✅ **Archive/Delete** - Set Inactive flag (soft delete) with confirmation
+- ✅ **Expandable rows** - Expand to see related data (e.g., all users on a workstation)
 
 ### Host Grouped View (VMs, Containers, Daemons)
 - **Grouped by host** - VMs, containers, and daemons organized under their host servers
@@ -195,9 +201,10 @@ Each modal includes a fully-featured data table with:
    - Connection flags: RDP?, VNC?, SSH?, Web?
    - AD Server flag for Domain Controller identification
 
-2. **Workstations + Users** (Green) - PC inventory and user accounts
-   - 10 columns combining workstation and user data
-   - Computer names, locations, users, emails, IP addresses
+2. **Workstations + Users** (Green) - PC inventory and user accounts (many-to-many)
+   - Workstation-centric view with expandable rows to show all assigned users
+   - User count badge ("2 users", single username, or "No user")
+   - Click expand arrow to see full user details (Name, Login, Phone, Cell, Location)
 
 3. **Firewalls/Routers (External)** (Amber) - Firewalls and VPN connections
    - 16 columns including firewall configs, VPN settings
@@ -238,21 +245,30 @@ Each modal includes a fully-featured data table with:
 - Protected routes
 - Session persistence
 
+### Additional Modals
+- **Workstations** - Raw workstation data with expandable rows showing assigned users
+- **Users** - User accounts with expandable rows showing assigned workstations
+- **Emails** - Email configurations with credentials
+- **Services** - Service credentials with host/URL info
+
 ### Components
-- **DataTable** - Reusable table component with search, sort, filter, pagination
+- **DataTable** - Reusable table component with search, sort, filter, pagination, inline editing, and expandable rows
 - **FullPageModal** - Modal overlay system with keyboard shortcuts (ESC to close)
 - **HostGroupedView** - VM/Container/Daemon grouped display with resource tracking
+- **AddRecordModal** - Form-based modal for creating new records
 - **Responsive design** - Works on desktop, tablet, mobile
 
-### Recent Updates (2026-01-30)
+### Recent Updates (2026-02-06)
 
+- **Many-to-Many Relationships** - Workstations and Users now properly handle many-to-many via expandable rows
+- **Expandable Rows** - Generic DataTable feature; click arrow to expand sub-rows with related data
+- **Inline Editing** - Double-click any editable cell to modify values, saves directly to Excel
+- **Add Record** - Modal form for creating new entries across all data types
+- **Archive System** - Soft delete via Inactive flag instead of permanent deletion
+- **Standalone Modals** - Workstations and Users available as separate modals with cross-referenced data
 - **User Menu Dropdown** - Username is now clickable, showing theme selector (Light/Dark/System) and logout
 - **Domain/AD Modal** - Click the Domain display to see Active Directory servers with credentials
 - **Internal IP Display** - Firewalls/Routers now show internal IP from Core.xlsx
-- **Easter Egg Enhancement** - Logo/text toggle with eating animation
-- **Dark Mode Fix** - Fixed hover highlighting in DataTable for dark mode
-- **Dashboard Renaming** - "Core Infrastructure" → "Servers/Switches", "External Info" → "Firewalls/Routers"
 
-**Status:** Phase 1 Complete - Full read-only dashboard with CRUD mockups
-**Next Phase:** Implement actual write operations to Excel files
-**Last Updated:** 2026-01-30
+**Status:** Phase 1 & Phase 2 Complete - Full dashboard with read/write capabilities
+**Last Updated:** 2026-02-06

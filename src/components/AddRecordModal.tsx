@@ -1,0 +1,142 @@
+"use client";
+
+import { useState } from "react";
+
+interface FieldConfig {
+  key: string;
+  label: string;
+  type?: 'text' | 'password' | 'number' | 'ip' | 'email' | 'url' | 'textarea';
+  required?: boolean;
+  defaultValue?: any;
+  autoFill?: boolean; // Auto-filled and not editable (e.g., Client)
+}
+
+interface AddRecordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  fields: FieldConfig[];
+  onSave: (data: Record<string, any>) => Promise<boolean>;
+}
+
+export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRecordModalProps) {
+  const [formData, setFormData] = useState<Record<string, any>>(() => {
+    const initial: Record<string, any> = {};
+    fields.forEach(f => {
+      initial[f.key] = f.defaultValue ?? '';
+    });
+    return initial;
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleChange = (key: string, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validate required fields
+    for (const field of fields) {
+      if (field.required && !field.autoFill && !formData[field.key]) {
+        setError(`${field.label} is required`);
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const success = await onSave(formData);
+      if (success) {
+        // Reset form
+        const initial: Record<string, any> = {};
+        fields.forEach(f => {
+          initial[f.key] = f.defaultValue ?? '';
+        });
+        setFormData(initial);
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save record');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xl leading-none border-none bg-transparent cursor-pointer"
+          >
+            x
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 flex flex-col gap-4">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded text-sm">
+              {error}
+            </div>
+          )}
+
+          {fields.map((field) => (
+            <div key={field.key} className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {field.label}
+                {field.required && !field.autoFill && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              {field.autoFill ? (
+                <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-400">
+                  {formData[field.key]}
+                </div>
+              ) : field.type === 'textarea' ? (
+                <textarea
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              ) : (
+                <input
+                  type={field.type === 'number' ? 'number' : 'text'}
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={field.label}
+                />
+              )}
+            </div>
+          ))}
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className={`px-4 py-2 border-none rounded text-sm text-white cursor-pointer font-medium ${saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
