@@ -6,6 +6,7 @@ import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable, SortConfig } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
 import { TitleEater } from "@/components/EasterEggs";
+import { AddRecordModal } from "@/components/AddRecordModal";
 import { useTheme } from "@/hooks/useTheme";
 import { PREFERENCE_KEYS, Theme } from "@/types/preferences";
 
@@ -22,6 +23,7 @@ const DEFAULT_SORTS: Record<string, SortConfig> = {
   servicesModal: { key: 'Service', direction: 'asc' },
   usersModal: { key: 'Login', direction: 'asc' },
   domainAD: { key: 'IP address', direction: 'asc' },
+  workstations: { key: 'IP Address', direction: 'asc' },
 };
 
 export default function DashboardPage() {
@@ -52,11 +54,15 @@ export default function DashboardPage() {
   const [cameras, setCameras] = useState<any[]>([]);
   const [emails, setEmails] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [workstations, setWorkstations] = useState<any[]>([]);
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [miscTab, setMiscTab] = useState<'services' | 'domains' | 'cameras' | 'documents'>('services');
   const [reportsTab, setReportsTab] = useState<'inactive' | 'missingData' | 'mfaStatus' | 'firmware' | 'resources' | 'passwordAge' | 'win11'>('inactive');
+
+  // Add record modal state
+  const [addModalType, setAddModalType] = useState<string | null>(null);
 
   // Sort preferences state (user's saved sort preferences per table)
   const [sortPreferences, setSortPreferences] = useState<Record<string, SortConfig>>({});
@@ -120,32 +126,35 @@ export default function DashboardPage() {
   const sortedWorkstationsUsers = useMemo(() => sortByIP(workstationsUsers, 'ipAddress'), [workstationsUsers, sortByIP]);
   const sortedExternalInfo = useMemo(() => sortByIP(externalInfo, 'IntIP'), [externalInfo, sortByIP]);
 
-  // Extract data fetching into reusable function
-  const fetchClientData = () => {
+  // Extract data fetching into reusable function - must be defined before handlers that use it
+  const fetchClientData = useCallback(() => {
     if (!selectedClient) return;
 
     setLoadingData(true);
 
-    // Fetch all data in parallel
+    // Add cache-busting timestamp to prevent stale data after edits
+    const cacheBuster = `&_t=${Date.now()}`;
+
+    // Fetch all data in parallel (no-store prevents caching)
     Promise.all([
-      fetch(`/api/data/external-info?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/core?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/workstations-users?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/managed-info?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/admin-credentials?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/guacamole?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/devices?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/containers?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/vms?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/daemons?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/services?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/domains?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/cameras?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/emails?client=${selectedClient}`).then(res => res.json()),
-      fetch(`/api/data/users?client=${selectedClient}`).then(res => res.json())
+      fetch(`/api/data/external-info?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/core?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/workstations-users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/managed-info?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/admin-credentials?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/guacamole?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/devices?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/containers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/vms?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/daemons?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/services?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/domains?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/cameras?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/emails?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData]) => {
-        console.log("Admin credentials response:", adminData); // Debug log
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData]) => {
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
         setWorkstationsUsers(wsUsersData.data || []);
@@ -166,6 +175,7 @@ export default function DashboardPage() {
         setCameras(camerasData.data || []);
         setEmails(emailsData.data || []);
         setUsers(usersData.data || []);
+        setWorkstations(workstationsData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -190,9 +200,264 @@ export default function DashboardPage() {
         setCameras([]);
         setEmails([]);
         setUsers([]);
+        setWorkstations([]);
         setLoadingData(false);
       });
-  };
+  }, [selectedClient]);
+
+  // Handle inline cell edit - save to Excel via API
+  const handleCellEdit = useCallback(async (
+    fileKey: string,
+    row: any,
+    columnKey: string,
+    newValue: any,
+    identifierKeys: string[]
+  ): Promise<boolean> => {
+    const rowIdentifier: Record<string, any> = {};
+    for (const key of identifierKeys) {
+      if (row[key] !== undefined) {
+        rowIdentifier[key] = row[key];
+      }
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle workstationsUsers cell edit - routes to correct Excel file based on field
+  const handleWorkstationsUsersEdit = useCallback(async (
+    row: any,
+    columnKey: string,
+    newValue: any
+  ): Promise<boolean> => {
+    const workstationFields: Record<string, string> = {
+      'computerName': 'Computer Name',
+      'ipAddress': 'IP Address',
+      'cpu': 'CPU',
+      'serviceTag': 'Service Tag',
+      'description': 'Description',
+      'win11Capable': 'Win11 Capable',
+    };
+
+    const userFields: Record<string, string> = {
+      'username': 'Login',
+      'fullName': 'Name',
+      'phone': 'Phone',
+      'location': 'SubName',
+    };
+
+    let fileKey: string;
+    let excelColumnKey: string;
+    let rowIdentifier: Record<string, any>;
+
+    if (workstationFields[columnKey]) {
+      fileKey = 'workstations';
+      excelColumnKey = workstationFields[columnKey];
+      rowIdentifier = {
+        'Client': row._wsClient,
+        'Computer Name': row._wsComputerName,
+      };
+    } else if (userFields[columnKey]) {
+      fileKey = 'users';
+      excelColumnKey = userFields[columnKey];
+      rowIdentifier = {
+        'Client': row._userClient,
+        'Login': row._userLogin,
+      };
+
+      if (!row._userLogin) {
+        alert('Cannot edit user fields - no user is assigned to this workstation.');
+        return false;
+      }
+    } else {
+      console.warn(`Unknown column key for workstationsUsers: ${columnKey}`);
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey: excelColumnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle externalInfo cell edit - routes IntIP to Core file
+  const handleExternalInfoEdit = useCallback(async (
+    row: any,
+    columnKey: string,
+    newValue: any
+  ): Promise<boolean> => {
+    let fileKey: string;
+    let excelColumnKey: string;
+    let rowIdentifier: Record<string, any>;
+
+    if (columnKey === 'IntIP') {
+      if (!row._coreName) {
+        alert('Cannot edit Internal IP - no matching core infrastructure item found.');
+        return false;
+      }
+      fileKey = 'core';
+      excelColumnKey = 'IP address';
+      rowIdentifier = {
+        'Client': row._coreClient,
+        'Name': row._coreName,
+      };
+    } else {
+      fileKey = 'externalInfo';
+      excelColumnKey = columnKey;
+      rowIdentifier = {
+        'Client': row.Client,
+        'SubName': row.SubName,
+        'Device Type': row['Device Type'],
+      };
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          fileKey,
+          rowIdentifier,
+          columnKey: excelColumnKey,
+          newValue,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
+
+  // Handle adding a new record
+  const handleAddRecord = useCallback(async (
+    fileKey: string,
+    rowData: Record<string, any>
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addRow',
+          fileKey,
+          rowData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to add record');
+      }
+    } catch (error: any) {
+      console.error('Failed to add record:', error);
+      throw error;
+    }
+  }, [fetchClientData]);
+
+  // Handle marking a record as inactive (archive)
+  const handleInactivate = useCallback(async (
+    fileKey: string,
+    row: any,
+    identifierKeys: string[]
+  ): Promise<boolean> => {
+    const rowIdentifier: Record<string, any> = {};
+    for (const key of identifierKeys) {
+      if (row[key] !== undefined) {
+        rowIdentifier[key] = row[key];
+      }
+    }
+
+    try {
+      const response = await fetch('/api/data/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'setInactive',
+          fileKey,
+          rowIdentifier,
+          inactive: 1,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to archive: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to archive record:', error);
+      alert('Failed to archive. Please try again.');
+      return false;
+    }
+  }, [fetchClientData]);
 
   // Save selected client to localStorage and server
   const saveClientPreference = useCallback(async (client: string) => {
@@ -356,8 +621,9 @@ export default function DashboardPage() {
       setCameras([]);
       setEmails([]);
       setUsers([]);
+      setWorkstations([]);
     }
-  }, [selectedClient]);
+  }, [selectedClient, fetchClientData]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -516,6 +782,12 @@ export default function DashboardPage() {
                   Users
                 </button>
                 <button
+                  onClick={() => setOpenModal('workstationsRaw')}
+                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Workstations
+                </button>
+                <button
                   onClick={() => setOpenModal('reports')}
                   className="px-3 py-1.5 border border-purple-500 dark:border-purple-500 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 cursor-pointer text-sm font-medium transition-all hover:bg-purple-100 dark:hover:bg-purple-900/50"
                 >
@@ -652,8 +924,8 @@ export default function DashboardPage() {
                         <tr className="border-b border-gray-200 dark:border-gray-600">
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Location</th>
                           <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP Address</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer (Full Name)</th>
-                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Username</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Computer Name</th>
+                          <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Users</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -661,8 +933,16 @@ export default function DashboardPage() {
                           <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                             <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.location || '-'}</td>
                             <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item.ipAddress || '-'}</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'} ({item.fullName || '-'})</td>
-                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.username || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.computerName || '-'}</td>
+                            <td className="p-1.5 text-gray-900 dark:text-gray-100">
+                              {item.userCount === 0 ? (
+                                <span className="text-gray-400 italic">No user</span>
+                              ) : item.userCount === 1 ? (
+                                <span>{item.username}</span>
+                              ) : (
+                                <span className="font-medium">{item.userCount} users</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -888,23 +1168,16 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + row.Name);
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row.Name}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new infrastructure item.');
-          }}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="coreInfra"
           defaultSort={getSortConfig('coreInfra')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('core', row, columnKey, newValue, ['Client', 'Name'])}
+          onAdd={() => setAddModalType('core')}
+          onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
         />
       </FullPageModal>
 
@@ -918,32 +1191,56 @@ export default function DashboardPage() {
           columns={[
             { key: 'computerName', label: 'Computer Name', sortable: true },
             { key: 'location', label: 'Location', sortable: true },
-            { key: 'username', label: 'Username', sortable: true },
-            { key: 'fullName', label: 'Full Name', sortable: true },
-            { key: 'email', label: 'Email', type: 'email', sortable: true },
-            { key: 'os', label: 'Operating System', sortable: true },
+            { key: 'userDisplay', label: 'Users', sortable: true, editable: false },
+            { key: 'username', label: 'Primary User', sortable: true, editable: false },
             { key: 'ipAddress', label: 'IP Address', type: 'ip', sortable: true },
             { key: 'serviceTag', label: 'Service Tag', sortable: true },
             { key: 'cpu', label: 'CPU', sortable: true },
             { key: 'description', label: 'Description', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + (row.computerName || row.fullName));
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row.computerName || row.fullName}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new workstation/user.');
-          }}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="workstationsUsers"
           defaultSort={getSortConfig('workstationsUsers')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={handleWorkstationsUsersEdit}
+          onInactivate={(row) => handleInactivate('workstations', { Client: row._wsClient, 'Computer Name': row._wsComputerName }, ['Client', 'Computer Name'])}
+          expandable={true}
+          expandedRowRenderer={(row) => (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Users assigned to {row.computerName} ({row.userCount})
+              </h4>
+              {row.users && row.users.length > 0 ? (
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-600">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Name</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Login</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Phone</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cell</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Location</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row.users.map((user: any, i: number) => (
+                      <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.name}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.login}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.phone || '-'}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.cell || '-'}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.subName || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-400 dark:text-gray-500 italic text-sm">No users assigned to this workstation</p>
+              )}
+            </div>
+          )}
         />
       </FullPageModal>
 
@@ -973,23 +1270,16 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + (row['Device Type'] || 'device'));
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row['Device Type'] || 'this device'}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new firewall/VPN connection.');
-          }}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="externalInfo"
           defaultSort={getSortConfig('externalInfo')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={handleExternalInfoEdit}
+          onAdd={() => setAddModalType('externalInfo')}
+          onInactivate={(row) => handleInactivate('externalInfo', row, ['Client', 'SubName', 'Device Type'])}
         />
       </FullPageModal>
 
@@ -1013,20 +1303,10 @@ export default function DashboardPage() {
             { key: 'Note 1', label: 'Notes 1', sortable: true },
             { key: 'Note 2', label: 'Notes 2', sortable: true },
           ]}
-          onEdit={(row) => {
-            alert('Edit functionality (mockup)\nEditing: ' + (row.Provider || 'ISP connection'));
-          }}
-          onDelete={(row) => {
-            if (confirm(`Delete ${row.Provider || 'this connection'}?\n\nThis is a mockup - no actual deletion will occur.`)) {
-              alert('Delete confirmed (mockup only)');
-            }
-          }}
-          onAdd={() => {
-            alert('Add New functionality (mockup)\nThis will open a form to add a new ISP/WAN connection.');
-          }}
           enablePasswordMasking={false}
           enableSearch={true}
           enableExport={true}
+          onInactivate={(row) => handleInactivate('managedInfo', row, ['Client', 'Provider'])}
         />
       </FullPageModal>
 
@@ -1050,10 +1330,11 @@ export default function DashboardPage() {
                   { key: 'Password', label: 'Password', type: 'password', sortable: false },
                   { key: 'Notes', label: 'Notes', sortable: true },
                 ]}
-                onEdit={(row) => alert('Edit Admin Email (mockup)\n' + row.Email)}
-                onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
-                onAdd={() => alert('Add Admin Email (mockup)')}
+                onAdd={() => setAddModalType('adminEmails')}
                 rowsPerPageOptions={[25, 50]}
+                onInactivate={(row) => handleInactivate('adminEmails', row, ['Client', 'Email'])}
+                editable={true}
+                onCellEdit={(row, columnKey, newValue) => handleCellEdit('adminEmails', row, columnKey, newValue, ['Client', 'Email'])}
               />
             </div>
           </div>
@@ -1072,11 +1353,12 @@ export default function DashboardPage() {
                     { key: 'Login', label: 'Login', sortable: true },
                     { key: 'Password', label: 'Password', type: 'password', sortable: false },
                   ]}
-                  onEdit={(row) => alert('Edit Mitel (mockup)\n' + row.Login)}
-                  onDelete={(row) => confirm(`Delete ${row.Login}? (mockup)`) && alert('Deleted (mockup)')}
-                  onAdd={() => alert('Add Mitel Login (mockup)')}
+                  onAdd={() => setAddModalType('adminMitelLogins')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('adminMitelLogins', row, ['Client', 'Login'])}
+                  editable={true}
+                  onCellEdit={(row, columnKey, newValue) => handleCellEdit('adminMitelLogins', row, columnKey, newValue, ['Client', 'Login'])}
                 />
               </div>
             </div>
@@ -1093,11 +1375,12 @@ export default function DashboardPage() {
                     { key: 'UserName', label: 'Username', sortable: true },
                     { key: 'PW', label: 'Password', type: 'password', sortable: false },
                   ]}
-                  onEdit={(row) => alert('Edit Acronis (mockup)\n' + row.UserName)}
-                  onDelete={(row) => confirm(`Delete ${row.UserName}? (mockup)`) && alert('Deleted (mockup)')}
-                  onAdd={() => alert('Add Acronis Backup (mockup)')}
+                  onAdd={() => setAddModalType('acronisBackups')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('acronisBackups', row, ['Client', 'UserName'])}
+                  editable={true}
+                  onCellEdit={(row, columnKey, newValue) => handleCellEdit('acronisBackups', row, columnKey, newValue, ['Client', 'UserName'])}
                 />
               </div>
             </div>
@@ -1114,11 +1397,12 @@ export default function DashboardPage() {
                     { key: 'username', label: 'Username', sortable: true },
                     { key: 'pass', label: 'Password', type: 'password', sortable: false },
                   ]}
-                  onEdit={(row) => alert('Edit Cloudflare (mockup)\n' + row.username)}
-                  onDelete={(row) => confirm(`Delete ${row.username}? (mockup)`) && alert('Deleted (mockup)')}
-                  onAdd={() => alert('Add Cloudflare Admin (mockup)')}
+                  onAdd={() => setAddModalType('cloudflareAdmins')}
                   rowsPerPageOptions={[10, 25]}
                   enableExport={false}
+                  onInactivate={(row) => handleInactivate('cloudflareAdmins', row, ['Client', 'username'])}
+                  editable={true}
+                  onCellEdit={(row, columnKey, newValue) => handleCellEdit('cloudflareAdmins', row, columnKey, newValue, ['Client', 'username'])}
                 />
               </div>
             </div>
@@ -1193,12 +1477,11 @@ export default function DashboardPage() {
                   { key: 'Date of last known change', label: 'Last Changed', sortable: true },
                   { key: 'Notes', label: 'Notes', sortable: true },
                 ]}
-                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Service)}
-                onDelete={(row) => confirm(`Delete ${row.Service}? (mockup)`) && alert('Deleted (mockup)')}
                 onAdd={() => alert('Add New Service (mockup)')}
                 enablePasswordMasking={true}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
               />
             )}
 
@@ -1209,12 +1492,11 @@ export default function DashboardPage() {
                   { key: 'Domain Name', label: 'Domain Name', sortable: true },
                   { key: 'Alt Domain', label: 'Alternative Domain', sortable: true },
                 ]}
-                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row['Domain Name'])}
-                onDelete={(row) => confirm(`Delete ${row['Domain Name']}? (mockup)`) && alert('Deleted (mockup)')}
                 onAdd={() => alert('Add New Domain (mockup)')}
                 enablePasswordMasking={false}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('domains', row, ['Client', 'Domain Name'])}
               />
             )}
 
@@ -1233,12 +1515,11 @@ export default function DashboardPage() {
                   { key: 'Notes', label: 'Notes', sortable: true },
                   { key: 'Notes 2', label: 'Notes 2', sortable: true },
                 ]}
-                onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-                onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
                 onAdd={() => alert('Add New Camera (mockup)')}
                 enablePasswordMasking={true}
                 enableSearch={true}
                 enableExport={true}
+                onInactivate={(row) => handleInactivate('cameras', row, ['Client', 'Name'])}
               />
             )}
 
@@ -1298,15 +1579,15 @@ export default function DashboardPage() {
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Device (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="devices"
           defaultSort={getSortConfig('devices')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('devices', row, columnKey, newValue, ['client', 'Name'])}
+          onInactivate={(row) => handleInactivate('devices', row, ['client', 'Name'])}
         />
       </FullPageModal>
 
@@ -1343,15 +1624,15 @@ export default function DashboardPage() {
             { key: 'POP_override', label: 'POP Override', sortable: true },
             { key: 'SMTP_override', label: 'SMTP Override', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Email)}
-          onDelete={(row) => confirm(`Delete ${row.Email}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Email (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="emails"
           defaultSort={getSortConfig('emails')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('emails', row, columnKey, newValue, ['Client', 'Email'])}
+          onInactivate={(row) => handleInactivate('emails', row, ['Client', 'Email'])}
         />
       </FullPageModal>
 
@@ -1370,15 +1651,15 @@ export default function DashboardPage() {
             { key: 'Date of last known change', label: 'Last Changed', sortable: true },
             { key: 'Notes', label: 'Notes', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Service)}
-          onDelete={(row) => confirm(`Delete ${row.Service}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New Service (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="servicesModal"
           defaultSort={getSortConfig('servicesModal')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('services', row, columnKey, newValue, ['Client', 'Service'])}
+          onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
         />
       </FullPageModal>
 
@@ -1403,15 +1684,51 @@ export default function DashboardPage() {
             { key: 'Active', label: 'Active', sortable: true },
             { key: 'Grouping', label: 'Grouping', sortable: true },
           ]}
-          onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-          onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-          onAdd={() => alert('Add New User (mockup)')}
           enablePasswordMasking={true}
           enableSearch={true}
           enableExport={true}
           tableId="usersModal"
           defaultSort={getSortConfig('usersModal')}
           onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('users', row, columnKey, newValue, ['Client', 'Login'])}
+          onInactivate={(row) => handleInactivate('users', row, ['Client', 'Login'])}
+          expandable={true}
+          expandedRowRenderer={(row) => (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Workstations for {row.Name || row.Login} ({row._workstationCount || 0})
+              </h4>
+              {row._workstations && row._workstations.length > 0 ? (
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-600">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Computer Name</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">IP Address</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Service Tag</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">CPU</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Description</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Win11</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row._workstations.map((ws: any, i: number) => (
+                      <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{ws.computerName}</td>
+                        <td className="px-3 py-2 font-mono text-gray-900 dark:text-gray-100">{ws.ipAddress}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{ws.serviceTag}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{ws.cpu}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{ws.description}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{ws.win11Capable === 1 ? 'Yes' : ws.win11Capable === 0 ? 'No' : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-400 dark:text-gray-500 italic text-sm">No workstation found for this user</p>
+              )}
+            </div>
+          )}
         />
       </FullPageModal>
 
@@ -1452,18 +1769,86 @@ export default function DashboardPage() {
                 { key: 'Description', label: 'Description', sortable: true },
                 { key: 'Notes', label: 'Notes', sortable: true },
               ]}
-              onEdit={(row) => alert('Edit functionality (mockup)\nEditing: ' + row.Name)}
-              onDelete={(row) => confirm(`Delete ${row.Name}? (mockup)`) && alert('Deleted (mockup)')}
-              onAdd={() => alert('Add New AD Server (mockup)')}
               enablePasswordMasking={true}
               enableSearch={true}
               enableExport={true}
               tableId="domainAD"
               defaultSort={getSortConfig('domainAD')}
               onSortChange={handleSortChange}
+              onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
             />
           </div>
         </div>
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'workstationsRaw'}
+        onClose={() => setOpenModal(null)}
+        title="Workstations (Raw Data)"
+      >
+        <DataTable
+          data={workstations}
+          columns={[
+            { key: 'Computer Name', label: 'Computer Name', sortable: true, editable: false },
+            { key: 'IP Address', label: 'IP Address', type: 'ip', sortable: true },
+            { key: '_userCount', label: 'Users', sortable: true, editable: false },
+            { key: 'Service Tag', label: 'Service Tag', sortable: true },
+            { key: 'CPU', label: 'CPU', sortable: true },
+            { key: 'Description', label: 'Description', sortable: true },
+            { key: 'Upstream', label: 'Upstream', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Notes 2', label: 'Notes 2', sortable: true },
+            { key: 'Active', label: 'Active', sortable: true },
+            { key: 'Grouping', label: 'Grouping', sortable: true },
+            { key: 'Asset ID', label: 'Asset ID', sortable: true },
+            { key: 'Win11 Capable', label: 'Win11 Capable', sortable: true },
+          ]}
+          enablePasswordMasking={false}
+          enableSearch={true}
+          enableExport={true}
+          tableId="workstations"
+          defaultSort={getSortConfig('workstations')}
+          onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) =>
+            handleCellEdit('workstations', row, columnKey, newValue, ['Client', 'Computer Name'])
+          }
+          onInactivate={(row) => handleInactivate('workstations', row, ['Client', 'Computer Name'])}
+          expandable={true}
+          expandedRowRenderer={(row) => (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Users on {row["Computer Name"]} ({row._userCount || 0})
+              </h4>
+              {row._users && row._users.length > 0 ? (
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-600">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Name</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Login</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Phone</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Cell</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Location</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row._users.map((user: any, i: number) => (
+                      <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.name}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.login}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.phone}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.cell}</td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{user.subName}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-400 dark:text-gray-500 italic text-sm">No users assigned to this workstation</p>
+              )}
+            </div>
+          )}
+        />
       </FullPageModal>
 
       {/* Reports Modal */}
@@ -1913,6 +2298,97 @@ export default function DashboardPage() {
           </div>
         </div>
       </FullPageModal>
+
+      {/* Add Record Modals */}
+      <AddRecordModal
+        isOpen={addModalType === 'externalInfo'}
+        onClose={() => setAddModalType(null)}
+        title="Add Firewall/Router"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'SubName', label: 'Location', required: true },
+          { key: 'Device Type', label: 'Device Type', required: true },
+          { key: 'Connection Type', label: 'Connection Type' },
+          { key: 'IP address', label: 'External IP', type: 'ip' },
+          { key: 'Port', label: 'Port', type: 'number' },
+          { key: 'Username', label: 'Username' },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'VPN Port', label: 'VPN Port', type: 'number' },
+          { key: 'VPN Username', label: 'VPN Username' },
+          { key: 'VPN Password', label: 'VPN Password', type: 'password' },
+          { key: 'Notes', label: 'Notes' },
+        ]}
+        onSave={(data) => handleAddRecord('externalInfo', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'core'}
+        onClose={() => setAddModalType(null)}
+        title="Add Server/Switch"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Name', label: 'Name', required: true },
+          { key: 'SubName', label: 'Location' },
+          { key: 'IP address', label: 'IP Address', type: 'ip' },
+          { key: 'Machine Name / MAC', label: 'Machine Name/MAC' },
+          { key: 'Service Tag', label: 'Service Tag' },
+          { key: 'Description', label: 'Description' },
+          { key: 'Login', label: 'Login' },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Notes', label: 'Notes' },
+        ]}
+        onSave={(data) => handleAddRecord('core', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'adminEmails'}
+        onClose={() => setAddModalType(null)}
+        title="Add Admin Email"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Name', label: 'Name', required: true },
+          { key: 'Email', label: 'Email', type: 'email', required: true },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Notes', label: 'Notes' },
+        ]}
+        onSave={(data) => handleAddRecord('adminEmails', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'adminMitelLogins'}
+        onClose={() => setAddModalType(null)}
+        title="Add Mitel Login"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Login', label: 'Login', required: true },
+          { key: 'Password', label: 'Password', type: 'password', required: true },
+        ]}
+        onSave={(data) => handleAddRecord('adminMitelLogins', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'acronisBackups'}
+        onClose={() => setAddModalType(null)}
+        title="Add Acronis Backup"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'UserName', label: 'Username', required: true },
+          { key: 'PW', label: 'Password', type: 'password', required: true },
+        ]}
+        onSave={(data) => handleAddRecord('acronisBackups', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'cloudflareAdmins'}
+        onClose={() => setAddModalType(null)}
+        title="Add Cloudflare Admin"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'username', label: 'Username', required: true },
+          { key: 'pass', label: 'Password', type: 'password', required: true },
+        ]}
+        onSave={(data) => handleAddRecord('cloudflareAdmins', data)}
+      />
     </div>
   );
 }

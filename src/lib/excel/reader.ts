@@ -204,3 +204,217 @@ export function isValidClient(clientAbbr: string): boolean {
   const clients = getAllClients();
   return clients.some((c) => c.value === clientAbbr);
 }
+
+/**
+ * Filter out rows where Inactive = 1
+ */
+export function filterOutInactive<T extends Record<string, any>>(data: T[]): T[] {
+  return data.filter((item) => item.Inactive !== 1 && item.Inactive !== '1');
+}
+
+/**
+ * Update a single cell in an Excel file
+ */
+export function updateExcelCell(
+  fileKey: keyof typeof EXCEL_FILES,
+  rowIdentifier: Record<string, any>,
+  columnKey: string,
+  newValue: any
+): boolean {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const sheet = workbook.Sheets[config.sheetName];
+    if (!sheet) return false;
+
+    const data = XLSX.utils.sheet_to_json<any>(sheet);
+
+    // Find the row matching all identifier fields
+    const rowIndex = data.findIndex((row: any) =>
+      Object.entries(rowIdentifier).every(([key, val]) => String(row[key]) === String(val))
+    );
+
+    if (rowIndex === -1) return false;
+
+    // Update the value
+    data[rowIndex][columnKey] = newValue;
+
+    // Rebuild the sheet
+    const newSheet = XLSX.utils.json_to_sheet(data);
+    workbook.Sheets[config.sheetName] = newSheet;
+
+    // Write back using fs.writeFileSync for UNC path compatibility
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    fs.writeFileSync(filePath, buffer);
+
+    // Clear cache
+    clearCache(fileKey);
+
+    return true;
+  } catch (error) {
+    console.error(`Error updating cell in ${config.fileName}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Update an entire row in an Excel file
+ */
+export function updateExcelRow(
+  fileKey: keyof typeof EXCEL_FILES,
+  rowIdentifier: Record<string, any>,
+  newRowData: Record<string, any>
+): boolean {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const sheet = workbook.Sheets[config.sheetName];
+    if (!sheet) return false;
+
+    const data = XLSX.utils.sheet_to_json<any>(sheet);
+
+    const rowIndex = data.findIndex((row: any) =>
+      Object.entries(rowIdentifier).every(([key, val]) => String(row[key]) === String(val))
+    );
+
+    if (rowIndex === -1) return false;
+
+    // Merge new data into existing row
+    data[rowIndex] = { ...data[rowIndex], ...newRowData };
+
+    const newSheet = XLSX.utils.json_to_sheet(data);
+    workbook.Sheets[config.sheetName] = newSheet;
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    fs.writeFileSync(filePath, buffer);
+    clearCache(fileKey);
+
+    return true;
+  } catch (error) {
+    console.error(`Error updating row in ${config.fileName}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Add a new row to an Excel file
+ */
+export function addExcelRow(
+  fileKey: keyof typeof EXCEL_FILES,
+  rowData: Record<string, any>
+): boolean {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const sheet = workbook.Sheets[config.sheetName];
+    if (!sheet) return false;
+
+    const data = XLSX.utils.sheet_to_json<any>(sheet);
+    data.push(rowData);
+
+    const newSheet = XLSX.utils.json_to_sheet(data);
+    workbook.Sheets[config.sheetName] = newSheet;
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    fs.writeFileSync(filePath, buffer);
+    clearCache(fileKey);
+
+    return true;
+  } catch (error) {
+    console.error(`Error adding row to ${config.fileName}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Delete a row from an Excel file
+ */
+export function deleteExcelRow(
+  fileKey: keyof typeof EXCEL_FILES,
+  rowIdentifier: Record<string, any>
+): boolean {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const sheet = workbook.Sheets[config.sheetName];
+    if (!sheet) return false;
+
+    const data = XLSX.utils.sheet_to_json<any>(sheet);
+
+    const rowIndex = data.findIndex((row: any) =>
+      Object.entries(rowIdentifier).every(([key, val]) => String(row[key]) === String(val))
+    );
+
+    if (rowIndex === -1) return false;
+
+    data.splice(rowIndex, 1);
+
+    const newSheet = XLSX.utils.json_to_sheet(data);
+    workbook.Sheets[config.sheetName] = newSheet;
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    fs.writeFileSync(filePath, buffer);
+    clearCache(fileKey);
+
+    return true;
+  } catch (error) {
+    console.error(`Error deleting row from ${config.fileName}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Ensure a column exists in an Excel file (add it if missing)
+ */
+export function ensureColumnExists(
+  fileKey: keyof typeof EXCEL_FILES,
+  columnName: string
+): boolean {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const sheet = workbook.Sheets[config.sheetName];
+    if (!sheet) return false;
+
+    // Check if column already exists by reading headers
+    const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+    const headers: string[] = [];
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = sheet[cellRef];
+      if (cell) headers.push(String(cell.v));
+    }
+
+    if (headers.includes(columnName)) return true;
+
+    // Add the column header
+    const newColumnIndex = headers.length;
+    const headerCellRef = XLSX.utils.encode_cell({ r: 0, c: newColumnIndex });
+    sheet[headerCellRef] = { t: 's', v: columnName };
+
+    // Update sheet range
+    range.e.c = Math.max(range.e.c, newColumnIndex);
+    sheet['!ref'] = XLSX.utils.encode_range(range);
+
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    fs.writeFileSync(filePath, buffer);
+    clearCache(fileKey);
+
+    return true;
+  } catch (error) {
+    console.error(`Error ensuring column in ${config.fileName}:`, error);
+    return false;
+  }
+}
