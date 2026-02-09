@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
-  const [miscTab, setMiscTab] = useState<'services' | 'domains' | 'cameras' | 'documents'>('services');
+  const [miscData, setMiscData] = useState<any[]>([]);
   const [reportsTab, setReportsTab] = useState<'inactive' | 'missingData' | 'mfaStatus' | 'firmware' | 'resources' | 'passwordAge' | 'win11'>('inactive');
 
   // Add record modal state
@@ -152,9 +152,10 @@ export default function DashboardPage() {
       fetch(`/api/data/cameras?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/emails?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
-      fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
+      fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/misc/${selectedClient}?${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult]) => {
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
         setWorkstationsUsers(wsUsersData.data || []);
@@ -176,6 +177,7 @@ export default function DashboardPage() {
         setEmails(emailsData.data || []);
         setUsers(usersData.data || []);
         setWorkstations(workstationsData.data || []);
+        setMiscData(miscResult.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -201,6 +203,7 @@ export default function DashboardPage() {
         setEmails([]);
         setUsers([]);
         setWorkstations([]);
+        setMiscData([]);
         setLoadingData(false);
       });
   }, [selectedClient]);
@@ -622,6 +625,7 @@ export default function DashboardPage() {
       setEmails([]);
       setUsers([]);
       setWorkstations([]);
+      setMiscData([]);
     }
   }, [selectedClient, fetchClientData]);
 
@@ -745,6 +749,13 @@ export default function DashboardPage() {
                     Guacamole
                   </button>
                 )}
+                <button
+                  onClick={() => window.open('http://192.168.203.241:6029/attendance', '_blank')}
+                  className="px-3 py-1.5 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-sm font-medium transition-all hover:bg-blue-600"
+                  title="Open Attendance"
+                >
+                  Attendance
+                </button>
                 <button
                   onClick={() => setOpenModal('misc')}
                   className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -1413,149 +1424,26 @@ export default function DashboardPage() {
       {/* Navigation Button Modals */}
       <FullPageModal
         isOpen={openModal === 'misc'}
-        onClose={() => {
-          setOpenModal(null);
-          setMiscTab('services');
-        }}
+        onClose={() => setOpenModal(null)}
         title="Miscellaneous"
       >
-        <div className="flex flex-col h-full">
-          {/* Tab Navigation */}
-          <div className="flex gap-2 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
-            <button
-              onClick={() => setMiscTab('services')}
-              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
-                miscTab === 'services'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              Services ({services.length})
-            </button>
-            <button
-              onClick={() => setMiscTab('domains')}
-              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
-                miscTab === 'domains'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              Domains ({domains.length})
-            </button>
-            <button
-              onClick={() => setMiscTab('cameras')}
-              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
-                miscTab === 'cameras'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              Cameras ({cameras.length})
-            </button>
-            <button
-              onClick={() => setMiscTab('documents')}
-              className={`px-6 py-3 border-b-[3px] text-[0.9375rem] transition-all ${
-                miscTab === 'documents'
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              Documents
-            </button>
-          </div>
-
-          {/* Tab Content */}
-          <div className="flex-1 overflow-hidden">
-            {miscTab === 'services' && (
-              <DataTable
-                data={services}
-                columns={[
-                  { key: 'Service', label: 'Service', sortable: true },
-                  { key: 'Username', label: 'Username', sortable: true },
-                  { key: 'Password', label: 'Password', type: 'password', sortable: false },
-                  { key: 'Host / URL', label: 'Host/URL', sortable: true },
-                  { key: 'Date of last known change', label: 'Last Changed', sortable: true },
-                  { key: 'Notes', label: 'Notes', sortable: true },
-                ]}
-                onAdd={() => alert('Add New Service (mockup)')}
-                enablePasswordMasking={true}
-                enableSearch={true}
-                enableExport={true}
-                onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
-              />
-            )}
-
-            {miscTab === 'domains' && (
-              <DataTable
-                data={domains}
-                columns={[
-                  { key: 'Domain Name', label: 'Domain Name', sortable: true },
-                  { key: 'Alt Domain', label: 'Alternative Domain', sortable: true },
-                ]}
-                onAdd={() => alert('Add New Domain (mockup)')}
-                enablePasswordMasking={false}
-                enableSearch={true}
-                enableExport={true}
-                onInactivate={(row) => handleInactivate('domains', row, ['Client', 'Domain Name'])}
-              />
-            )}
-
-            {miscTab === 'cameras' && (
-              <DataTable
-                data={cameras}
-                columns={[
-                  { key: 'Name', label: 'Name', sortable: true },
-                  { key: 'Vendor', label: 'Vendor', sortable: true },
-                  { key: 'Model', label: 'Model', sortable: true },
-                  { key: 'IP', label: 'IP Address', type: 'ip', sortable: true },
-                  { key: 'Howto Connect', label: 'Connection Method', sortable: true },
-                  { key: 'Login', label: 'Login', sortable: true },
-                  { key: 'Password', label: 'Password', type: 'password', sortable: false },
-                  { key: 'Host NVR', label: 'Host NVR', sortable: true },
-                  { key: 'Notes', label: 'Notes', sortable: true },
-                  { key: 'Notes 2', label: 'Notes 2', sortable: true },
-                ]}
-                onAdd={() => alert('Add New Camera (mockup)')}
-                enablePasswordMasking={true}
-                enableSearch={true}
-                enableExport={true}
-                onInactivate={(row) => handleInactivate('cameras', row, ['Client', 'Name'])}
-              />
-            )}
-
-            {miscTab === 'documents' && (
-              <div className="p-8 flex flex-col items-center gap-6">
-                <div className="text-center max-w-[600px]">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Client-Specific Document
-                  </h3>
-                  <p className="text-[0.9375rem] text-gray-500 dark:text-gray-400 mb-6">
-                    Download the miscellaneous Excel file for {selectedClient}. This file contains additional client-specific data and documentation.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    const downloadUrl = `/api/data/misc/${selectedClient}`;
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = `${selectedClient}.xlsx`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="px-8 py-3 border-none rounded-lg bg-blue-500 text-white cursor-pointer text-base font-semibold transition-all shadow-sm hover:bg-blue-600"
-                >
-                  Download {selectedClient}.xlsx
-                </button>
-
-                <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-500 dark:text-gray-400 max-w-[500px]">
-                  <strong>Note:</strong> This file is stored as a BLOB in the database and contains miscellaneous information specific to this client.
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <DataTable
+          data={miscData}
+          columns={[
+            { key: 'Notes', label: 'Notes', sortable: true },
+            { key: 'Notes 1', label: 'Notes 1', sortable: true },
+            { key: 'Notes 2', label: 'Notes 2', sortable: true },
+            { key: 'Notes 3', label: 'Notes 3', sortable: true },
+            { key: 'Notes 4', label: 'Notes 4', sortable: true },
+            { key: 'Notes 5', label: 'Notes 5', sortable: true },
+            { key: 'Notes 6', label: 'Notes 6', sortable: true },
+            { key: 'Notes 7', label: 'Notes 7', sortable: true },
+            { key: 'Notes 8', label: 'Notes 8', sortable: true },
+            { key: 'Notes 9', label: 'Notes 9', sortable: true },
+          ]}
+          enableSearch={true}
+          enableExport={true}
+        />
       </FullPageModal>
 
       <FullPageModal
