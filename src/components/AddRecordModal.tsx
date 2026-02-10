@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface FieldConfig {
   key: string;
@@ -29,6 +29,19 @@ export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRe
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reinitialize form data when modal opens to pick up latest defaultValues (e.g., selectedClient)
+  useEffect(() => {
+    if (isOpen) {
+      const initial: Record<string, any> = {};
+      fields.forEach(f => {
+        initial[f.key] = f.defaultValue ?? '';
+      });
+      setFormData(initial);
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
