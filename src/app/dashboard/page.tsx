@@ -55,6 +55,7 @@ export default function DashboardPage() {
   const [emails, setEmails] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [workstations, setWorkstations] = useState<any[]>([]);
+  const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
@@ -153,9 +154,10 @@ export default function DashboardPage() {
       fetch(`/api/data/emails?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
-      fetch(`/api/data/misc/${selectedClient}?${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
+      fetch(`/api/data/misc/${selectedClient}?${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/phone-numbers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult, phoneData]) => {
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
         setWorkstationsUsers(wsUsersData.data || []);
@@ -178,6 +180,7 @@ export default function DashboardPage() {
         setUsers(usersData.data || []);
         setWorkstations(workstationsData.data || []);
         setMiscData(miscResult.data || []);
+        setPhoneNumbers(phoneData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -204,6 +207,7 @@ export default function DashboardPage() {
         setUsers([]);
         setWorkstations([]);
         setMiscData([]);
+        setPhoneNumbers([]);
         setLoadingData(false);
       });
   }, [selectedClient]);
@@ -626,6 +630,7 @@ export default function DashboardPage() {
       setUsers([]);
       setWorkstations([]);
       setMiscData([]);
+      setPhoneNumbers([]);
     }
   }, [selectedClient, fetchClientData]);
 
@@ -648,7 +653,7 @@ export default function DashboardPage() {
       {/* Compact Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm flex-shrink-0 h-16">
         <div className="px-4 h-full flex justify-between items-center">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <h1 className="text-gray-900 dark:text-gray-100 m-0 flex items-center leading-none">
               <TitleEater title="Infrastructure Dashboard" />
             </h1>
@@ -736,71 +741,78 @@ export default function DashboardPage() {
               <span className="text-gray-700 dark:text-gray-300">↻</span>
             </button>
 
+            {/* Client Phone Number */}
+            {selectedClient && phoneNumbers.length > 0 && (
+              <div className="px-2.5 py-1 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-md text-sm flex flex-col items-center">
+                <span className="text-green-600 dark:text-green-400 font-medium text-xs">{phoneNumbers[0].Name || 'Phone'}:</span>
+                <a href={`tel:${phoneNumbers[0].Number}`} className="text-green-800 dark:text-green-200 font-semibold hover:underline">{phoneNumbers[0].Number}</a>
+              </div>
+            )}
             {/* Navigation Buttons */}
             {selectedClient && (
-              <div className="flex gap-2 ml-4 border-l border-gray-300 dark:border-gray-600 pl-4">
+              <div className="flex gap-1 ml-2 border-l border-gray-300 dark:border-gray-600 pl-2">
                 {/* Guacamole Button - Opens URL from GuacamoleHosts */}
                 {guacamoleHosts.length > 0 && guacamoleHosts[0]?.['Cloud Name'] && (
                   <button
                     onClick={() => window.open(guacamoleHosts[0]['Cloud Name'], '_blank')}
-                    className="px-3 py-1.5 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-sm font-medium transition-all hover:bg-blue-600"
+                    className="px-2 py-1 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-xs font-medium transition-all hover:bg-blue-600"
                     title={`Open ${guacamoleHosts[0]['Cloud Name'] || 'Guacamole'}`}
                   >
-                    Guacamole
+                    Guac
                   </button>
                 )}
                 <button
                   onClick={() => window.open('http://192.168.203.241:6029/attendance', '_blank')}
-                  className="px-3 py-1.5 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-sm font-medium transition-all hover:bg-blue-600"
+                  className="px-2 py-1 border border-blue-500 rounded-md bg-blue-500 text-white cursor-pointer text-xs font-medium transition-all hover:bg-blue-600"
                   title="Open Attendance"
                 >
-                  Attendance
+                  Attend
                 </button>
                 <button
                   onClick={() => setOpenModal('misc')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Misc
                 </button>
                 <button
                   onClick={() => setOpenModal('devices')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Devices
+                  Dev
                 </button>
                 <button
                   onClick={() => setOpenModal('vms')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  VMs/Containers
+                  VMs
                 </button>
                 <button
                   onClick={() => setOpenModal('emails')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Emails
+                  Email
                 </button>
                 <button
                   onClick={() => setOpenModal('servicesModal')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Services
+                  Svc
                 </button>
                 <button
                   onClick={() => setOpenModal('usersModal')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Users
                 </button>
                 <button
                   onClick={() => setOpenModal('workstationsRaw')}
-                  className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  Workstations
+                  WS
                 </button>
                 <button
                   onClick={() => setOpenModal('reports')}
-                  className="px-3 py-1.5 border border-purple-500 dark:border-purple-500 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 cursor-pointer text-sm font-medium transition-all hover:bg-purple-100 dark:hover:bg-purple-900/50"
+                  className="px-2 py-1 border border-purple-500 dark:border-purple-500 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 cursor-pointer text-xs font-medium transition-all hover:bg-purple-100 dark:hover:bg-purple-900/50"
                 >
                   Reports
                 </button>
