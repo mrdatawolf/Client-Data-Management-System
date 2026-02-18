@@ -5,7 +5,7 @@ import { useState, useMemo, useRef, useEffect, Fragment, type ReactNode } from "
 interface Column {
   key: string;
   label: string;
-  type?: 'text' | 'password' | 'number' | 'date' | 'ip' | 'email' | 'url';
+  type?: 'text' | 'password' | 'number' | 'date' | 'ip' | 'email' | 'url' | 'checkbox';
   sortable?: boolean;
   filterable?: boolean;
   hidden?: boolean;
@@ -216,6 +216,20 @@ export function DataTable({
     URL.revokeObjectURL(url);
   };
 
+  // Checkbox toggle handler (single-click to toggle 0/1)
+  const handleCheckboxToggle = async (rowIndex: number, columnKey: string, currentValue: any, row: any) => {
+    if (!editable || !onCellEdit || isSaving) return;
+    const newValue = currentValue === 1 ? 0 : 1;
+    setIsSaving(true);
+    try {
+      await onCellEdit(row, columnKey, newValue, row);
+    } catch (error) {
+      console.error('Failed to toggle checkbox:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Inline editing handlers
   const handleCellDoubleClick = (rowIndex: number, columnKey: string, currentValue: any, column: Column) => {
     if (!editable || !onCellEdit) return;
@@ -373,6 +387,7 @@ export function DataTable({
                       {visibleColumns.map((col) => {
                         const value = row[col.key];
                         const isPassword = col.type === 'password';
+                        const isCheckbox = col.type === 'checkbox';
                         const isMasked = maskedPasswords.has(`${rowIndex}-${col.key}`);
                         const isEditingThis = editingCell?.rowIndex === rowIndex && editingCell?.columnKey === col.key;
                         const isCellEditable = isEditable && col.editable !== false;
@@ -380,10 +395,18 @@ export function DataTable({
                         return (
                           <td
                             key={col.key}
-                            onDoubleClick={() => isCellEditable && handleCellDoubleClick(rowIndex, col.key, value, col)}
-                            className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCellEditable && !isEditingThis ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
+                            onDoubleClick={() => !isCheckbox && isCellEditable && handleCellDoubleClick(rowIndex, col.key, value, col)}
+                            className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCheckbox ? 'text-center' : ''} ${isCellEditable && !isEditingThis && !isCheckbox ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
                           >
-                            {isEditingThis ? (
+                            {isCheckbox ? (
+                              <input
+                                type="checkbox"
+                                checked={value === 1}
+                                onChange={() => isCellEditable && handleCheckboxToggle(rowIndex, col.key, value, row)}
+                                disabled={!isCellEditable || isSaving}
+                                className={`w-4 h-4 accent-blue-500 ${isCellEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                              />
+                            ) : isEditingThis ? (
                               <div className="relative">
                                 <input
                                   ref={editInputRef}
