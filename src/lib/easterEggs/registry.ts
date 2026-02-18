@@ -18,15 +18,14 @@ export const EASTER_EGGS: Record<string, EasterEggConfig> = {
     triggerDelay: 60000, // 1 minute
     probability: 1,
   },
-  // Add more easter eggs here:
-  // konamiCode: {
-  //   id: 'konamiCode',
-  //   name: 'Konami Code',
-  //   description: 'Enter the famous code for a surprise',
-  //   enabled: false,
-  //   triggerDelay: 0,
-  //   probability: 1,
-  // },
+  v1Celebration: {
+    id: 'v1Celebration',
+    name: 'v1.0 Celebration',
+    description: 'Fireworks celebration banner for the v1.0 release',
+    enabled: true,
+    triggerDelay: 500,
+    probability: 1,
+  },
 };
 
 export function isEasterEggEnabled(id: string): boolean {

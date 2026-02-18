@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 interface FieldConfig {
   key: string;
   label: string;
-  type?: 'text' | 'password' | 'number' | 'ip' | 'email' | 'url' | 'textarea';
+  type?: 'text' | 'password' | 'number' | 'ip' | 'email' | 'url' | 'textarea' | 'checkbox';
   required?: boolean;
   defaultValue?: any;
   autoFill?: boolean; // Auto-filled and not editable (e.g., Client)
@@ -23,7 +23,7 @@ export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRe
   const [formData, setFormData] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     fields.forEach(f => {
-      initial[f.key] = f.defaultValue ?? '';
+      initial[f.key] = f.defaultValue ?? (f.type === 'checkbox' ? 0 : '');
     });
     return initial;
   });
@@ -35,7 +35,7 @@ export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRe
     if (isOpen) {
       const initial: Record<string, any> = {};
       fields.forEach(f => {
-        initial[f.key] = f.defaultValue ?? '';
+        initial[f.key] = f.defaultValue ?? (f.type === 'checkbox' ? 0 : '');
       });
       setFormData(initial);
       setError(null);
@@ -68,7 +68,7 @@ export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRe
         // Reset form
         const initial: Record<string, any> = {};
         fields.forEach(f => {
-          initial[f.key] = f.defaultValue ?? '';
+          initial[f.key] = f.defaultValue ?? (f.type === 'checkbox' ? 0 : '');
         });
         setFormData(initial);
         onClose();
@@ -113,6 +113,18 @@ export function AddRecordModal({ isOpen, onClose, title, fields, onSave }: AddRe
                 <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-400">
                   {formData[field.key]}
                 </div>
+              ) : field.type === 'checkbox' ? (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData[field.key] === 1}
+                    onChange={(e) => handleChange(field.key, e.target.checked ? 1 : 0)}
+                    className="w-4 h-4 accent-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {formData[field.key] === 1 ? 'Yes' : 'No'}
+                  </span>
+                </label>
               ) : field.type === 'textarea' ? (
                 <textarea
                   value={formData[field.key] || ''}

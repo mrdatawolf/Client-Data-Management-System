@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FullPageModal } from "@/components/FullPageModal";
 import { DataTable, SortConfig } from "@/components/DataTable";
 import { HostGroupedView } from "@/components/HostGroupedView";
-import { TitleEater } from "@/components/EasterEggs";
+import { TitleEater, V1Celebration } from "@/components/EasterEggs";
 import { AddRecordModal } from "@/components/AddRecordModal";
 import { useTheme } from "@/hooks/useTheme";
 import { PREFERENCE_KEYS, Theme } from "@/types/preferences";
@@ -650,6 +650,7 @@ export default function DashboardPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
+      <V1Celebration />
       {/* Compact Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm flex-shrink-0 h-16">
         <div className="px-4 h-full flex justify-between items-center">
@@ -1190,6 +1191,14 @@ export default function DashboardPage() {
             { key: 'Notes 2', label: 'Notes 2', sortable: true },
             { key: 'Grouping', label: 'Grouping', sortable: true },
             { key: 'Asset ID', label: 'Asset ID', sortable: true },
+            { key: 'Cores', label: 'Cores', type: 'number', sortable: true },
+            { key: 'Ram (GB)', label: 'RAM (GB)', type: 'number', sortable: true },
+            { key: 'On Landing Page', label: 'Landing Page', type: 'checkbox', sortable: true },
+            { key: 'RDP?', label: 'RDP', type: 'checkbox', sortable: true },
+            { key: 'VNC?', label: 'VNC', type: 'checkbox', sortable: true },
+            { key: 'SSH?', label: 'SSH', type: 'checkbox', sortable: true },
+            { key: 'Web?', label: 'Web', type: 'checkbox', sortable: true },
+            { key: 'AD Server', label: 'AD Server', type: 'checkbox', sortable: true },
           ]}
           enablePasswordMasking={true}
           enableSearch={true}
@@ -2236,6 +2245,14 @@ export default function DashboardPage() {
           { key: 'Login', label: 'Login' },
           { key: 'Password', label: 'Password', type: 'password' },
           { key: 'Notes', label: 'Notes' },
+          { key: 'Cores', label: 'Cores', type: 'number' },
+          { key: 'Ram (GB)', label: 'RAM (GB)', type: 'number' },
+          { key: 'On Landing Page', label: 'Landing Page', type: 'checkbox' },
+          { key: 'RDP?', label: 'RDP', type: 'checkbox' },
+          { key: 'VNC?', label: 'VNC', type: 'checkbox' },
+          { key: 'SSH?', label: 'SSH', type: 'checkbox' },
+          { key: 'Web?', label: 'Web', type: 'checkbox' },
+          { key: 'AD Server', label: 'AD Server', type: 'checkbox' },
         ]}
         onSave={(data) => handleAddRecord('core', data)}
       />

@@ -10,7 +10,8 @@
       "Bash(npx tsc:*)",
       "Bash(ls:*)",
       "Bash(dir:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npx next build:*)"
     ]
   }
 }
