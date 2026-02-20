@@ -5,7 +5,8 @@ import { useState, useMemo, useRef, useEffect, Fragment, type ReactNode } from "
 interface Column {
   key: string;
   label: string;
-  type?: 'text' | 'password' | 'number' | 'date' | 'ip' | 'email' | 'url' | 'checkbox';
+  type?: 'text' | 'password' | 'number' | 'date' | 'ip' | 'email' | 'url' | 'checkbox' | 'select';
+  options?: string[];
   sortable?: boolean;
   filterable?: boolean;
   hidden?: boolean;
@@ -406,6 +407,23 @@ export function DataTable({
                                 disabled={!isCellEditable || isSaving}
                                 className={`w-4 h-4 accent-blue-500 ${isCellEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                               />
+                            ) : isEditingThis && col.type === 'select' && col.options ? (
+                              <div className="relative">
+                                <select
+                                  value={editValue}
+                                  onChange={(e) => { setEditValue(e.target.value); }}
+                                  onBlur={handleEditSave}
+                                  onKeyDown={handleEditKeyDown}
+                                  disabled={isSaving}
+                                  className={`min-w-[150px] px-2 py-1 text-sm border-2 border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none shadow-lg ${isSaving ? 'opacity-50' : ''}`}
+                                  autoFocus
+                                >
+                                  <option value="">-- Select --</option>
+                                  {col.options.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              </div>
                             ) : isEditingThis ? (
                               <div className="relative">
                                 <input

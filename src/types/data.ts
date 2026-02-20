@@ -275,6 +275,26 @@ export interface Camera {
   "Host NVR": string;
 }
 
+// Websites / DNS
+export interface Website {
+  Client: string;
+  "Registrar": string;
+  "Registrar Credential Location": string;
+  "Registrar Username": string;
+  "Registrar Password": string;
+  "DNS Host": string;
+  "DNS Server Credential Location": string;
+  "DNS Username": string;
+  "DNS Password": string;
+  "Website Host": string;
+  "Website Credential Location": string;
+  "Website Username": string;
+  "Website Password": string;
+  URL: string;
+  Notes: string;
+  "Is Inactive"?: number;
+}
+
 // Combined data types for views
 export interface WorkstationUserFusion extends Workstation {
   UserName?: string;
@@ -386,5 +406,9 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
   cameras: {
     fileName: "Cameras External.xlsx",
     sheetName: "Cameras",
+  },
+  websites: {
+    fileName: "websites.xlsx",
+    sheetName: "Websites",
   },
 };
