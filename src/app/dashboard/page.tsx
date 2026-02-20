@@ -56,6 +56,8 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [workstations, setWorkstations] = useState<any[]>([]);
   const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
+  const [websites, setWebsites] = useState<any[]>([]);
+  const [whoisAvailable, setWhoisAvailable] = useState(false);
 
   // Modal state
   const [openModal, setOpenModal] = useState<string | null>(null);
@@ -155,9 +157,10 @@ export default function DashboardPage() {
       fetch(`/api/data/users?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/misc/${selectedClient}?${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
-      fetch(`/api/data/phone-numbers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
+      fetch(`/api/data/phone-numbers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      fetch(`/api/data/websites?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult, phoneData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult, phoneData, websitesData]) => {
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
         setWorkstationsUsers(wsUsersData.data || []);
@@ -181,6 +184,7 @@ export default function DashboardPage() {
         setWorkstations(workstationsData.data || []);
         setMiscData(miscResult.data || []);
         setPhoneNumbers(phoneData.data || []);
+        setWebsites(websitesData.data || []);
         setLoadingData(false);
       })
       .catch(err => {
@@ -208,6 +212,7 @@ export default function DashboardPage() {
         setWorkstations([]);
         setMiscData([]);
         setPhoneNumbers([]);
+        setWebsites([]);
         setLoadingData(false);
       });
   }, [selectedClient]);
@@ -425,11 +430,36 @@ export default function DashboardPage() {
     }
   }, [fetchClientData]);
 
+  // Handle whois autopopulate for websites modal
+  const handleWhoisLookup = useCallback(async (): Promise<Record<string, any> | null> => {
+    const domain = window.prompt("Enter domain name to look up (e.g., example.com):");
+    if (!domain) return null;
+
+    const cleanDomain = domain.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!cleanDomain) return null;
+
+    const res = await fetch(`/api/whois?action=lookup&domain=${encodeURIComponent(cleanDomain)}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Whois lookup failed");
+    }
+
+    const data = await res.json();
+    const result: Record<string, any> = {};
+    if (data.registrar) result["Registrar"] = data.registrar;
+    if (data.dnsHost) result["DNS Host"] = data.dnsHost;
+    if (data.websiteHost) result["Website Host"] = data.websiteHost;
+    result["URL"] = cleanDomain;
+
+    return result;
+  }, []);
+
   // Handle marking a record as inactive (archive)
   const handleInactivate = useCallback(async (
     fileKey: string,
     row: any,
-    identifierKeys: string[]
+    identifierKeys: string[],
+    inactiveColumn?: string
   ): Promise<boolean> => {
     const rowIdentifier: Record<string, any> = {};
     for (const key of identifierKeys) {
@@ -447,6 +477,7 @@ export default function DashboardPage() {
           fileKey,
           rowIdentifier,
           inactive: 1,
+          ...(inactiveColumn && { inactiveColumn }),
         }),
       });
 
@@ -594,6 +625,15 @@ export default function DashboardPage() {
         }
 
         setSortPreferences(sortPrefs);
+
+        // Check if whois tool is available (for websites autopopulate)
+        try {
+          const whoisRes = await fetch("/api/whois?action=check");
+          const whoisData = await whoisRes.json();
+          setWhoisAvailable(whoisData.available === true);
+        } catch {
+          // Silently ignore - whois just won't be available
+        }
       } catch (err) {
         console.error("Failed to load:", err);
         setLoading(false);
@@ -631,6 +671,7 @@ export default function DashboardPage() {
       setWorkstations([]);
       setMiscData([]);
       setPhoneNumbers([]);
+      setWebsites([]);
     }
   }, [selectedClient, fetchClientData]);
 
@@ -810,6 +851,12 @@ export default function DashboardPage() {
                   className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   WS
+                </button>
+                <button
+                  onClick={() => setOpenModal('websitesModal')}
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Sites
                 </button>
                 <button
                   onClick={() => setOpenModal('reports')}
@@ -1573,6 +1620,42 @@ export default function DashboardPage() {
       </FullPageModal>
 
       <FullPageModal
+        isOpen={openModal === 'websitesModal'}
+        onClose={() => setOpenModal(null)}
+        title="Websites / DNS"
+      >
+        <DataTable
+          data={websites}
+          columns={[
+            { key: 'Registrar', label: 'Registrar', sortable: true },
+            { key: 'Registrar Credential Location', label: 'Reg Cred Location', type: 'select', options: ['Local', 'Password Manager', 'Client'], sortable: true },
+            { key: 'Registrar Username', label: 'Reg Username', sortable: true },
+            { key: 'Registrar Password', label: 'Reg Password', type: 'password', sortable: false },
+            { key: 'DNS Host', label: 'DNS Host', sortable: true },
+            { key: 'DNS Server Credential Location', label: 'DNS Cred Location', type: 'select', options: ['Local', 'Password Manager', 'Client'], sortable: true },
+            { key: 'DNS Username', label: 'DNS Username', sortable: true },
+            { key: 'DNS Password', label: 'DNS Password', type: 'password', sortable: false },
+            { key: 'Website Host', label: 'Website Host', sortable: true },
+            { key: 'Website Credential Location', label: 'Web Cred Location', type: 'select', options: ['Local', 'Password Manager', 'Client'], sortable: true },
+            { key: 'Website Username', label: 'Web Username', sortable: true },
+            { key: 'Website Password', label: 'Web Password', type: 'password', sortable: false },
+            { key: 'URL', label: 'URL', type: 'url', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true },
+          ]}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+          tableId="websitesModal"
+          defaultSort={getSortConfig('websitesModal')}
+          onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('websites', row, columnKey, newValue, ['Client', 'DNS Host', 'URL'])}
+          onAdd={() => setAddModalType('websites')}
+          onInactivate={(row) => handleInactivate('websites', row, ['Client', 'DNS Host', 'URL'], 'Is Inactive')}
+        />
+      </FullPageModal>
+
+      <FullPageModal
         isOpen={openModal === 'usersModal'}
         onClose={() => setOpenModal(null)}
         title="Users"
@@ -2255,6 +2338,36 @@ export default function DashboardPage() {
           { key: 'AD Server', label: 'AD Server', type: 'checkbox' },
         ]}
         onSave={(data) => handleAddRecord('core', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'websites'}
+        onClose={() => setAddModalType(null)}
+        title="Add Website / DNS Record"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Registrar', label: 'Registrar' },
+          { key: 'Registrar Credential Location', label: 'Registrar Credential Location', type: 'select', options: ['Local', 'Password Manager', 'Client'] },
+          { key: 'Registrar Username', label: 'Registrar Username', visibleWhen: { key: 'Registrar Credential Location', value: 'Local' } },
+          { key: 'Registrar Password', label: 'Registrar Password', type: 'password', visibleWhen: { key: 'Registrar Credential Location', value: 'Local' } },
+          { key: 'DNS Host', label: 'DNS Host' },
+          { key: 'DNS Server Credential Location', label: 'DNS Credential Location', type: 'select', options: ['Local', 'Password Manager', 'Client'] },
+          { key: 'DNS Username', label: 'DNS Username', visibleWhen: { key: 'DNS Server Credential Location', value: 'Local' } },
+          { key: 'DNS Password', label: 'DNS Password', type: 'password', visibleWhen: { key: 'DNS Server Credential Location', value: 'Local' } },
+          { key: 'Website Host', label: 'Website Host' },
+          { key: 'Website Credential Location', label: 'Website Credential Location', type: 'select', options: ['Local', 'Password Manager', 'Client'] },
+          { key: 'Website Username', label: 'Website Username', visibleWhen: { key: 'Website Credential Location', value: 'Local' } },
+          { key: 'Website Password', label: 'Website Password', type: 'password', visibleWhen: { key: 'Website Credential Location', value: 'Local' } },
+          { key: 'URL', label: 'URL', type: 'url' },
+          { key: 'Notes', label: 'Notes' },
+        ]}
+        onSave={(data) => handleAddRecord('websites', data)}
+        actionButton={{
+          label: "Autopopulate",
+          disabled: !whoisAvailable,
+          disabledReason: "Requires whois.exe (winget install Microsoft.Sysinternals.Whois)",
+          onClick: handleWhoisLookup,
+        }}
       />
 
       <AddRecordModal

@@ -31,6 +31,32 @@ export function getExcelFilePath(fileKey: keyof typeof EXCEL_FILES): string {
 }
 
 /**
+ * Ensure an Excel file exists, creating it with headers if missing
+ */
+export function ensureExcelFileExists(
+  fileKey: keyof typeof EXCEL_FILES,
+  headers: string[]
+): void {
+  const config = EXCEL_FILES[fileKey];
+  const filePath = getExcelFilePath(fileKey);
+
+  if (fs.existsSync(filePath)) return;
+
+  // Create directory if needed
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // Create workbook with empty sheet containing headers
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([headers]);
+  XLSX.utils.book_append_sheet(workbook, sheet, config.sheetName);
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  fs.writeFileSync(filePath, buffer);
+}
+
+/**
  * Read and parse an Excel file
  */
 export function readExcelFile<T = any>(
@@ -209,7 +235,10 @@ export function isValidClient(clientAbbr: string): boolean {
  * Filter out rows where Inactive = 1
  */
 export function filterOutInactive<T extends Record<string, any>>(data: T[]): T[] {
-  return data.filter((item) => item.Inactive !== 1 && item.Inactive !== '1');
+  return data.filter((item) =>
+    item.Inactive !== 1 && item.Inactive !== '1' &&
+    item['Is Inactive'] !== 1 && item['Is Inactive'] !== '1'
+  );
 }
 
 /**
@@ -312,12 +341,22 @@ export function addExcelRow(
   const filePath = getExcelFilePath(fileKey);
 
   try {
-    const fileBuffer = fs.readFileSync(filePath);
-    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
-    const sheet = workbook.Sheets[config.sheetName];
-    if (!sheet) return false;
+    let workbook: XLSX.WorkBook;
+    let data: any[] = [];
 
-    const data = XLSX.utils.sheet_to_json<any>(sheet);
+    if (fs.existsSync(filePath)) {
+      const fileBuffer = fs.readFileSync(filePath);
+      workbook = XLSX.read(fileBuffer, { type: "buffer" });
+      const sheet = workbook.Sheets[config.sheetName];
+      if (!sheet) return false;
+      data = XLSX.utils.sheet_to_json<any>(sheet);
+    } else {
+      // Create new workbook if file doesn't exist
+      workbook = XLSX.utils.book_new();
+      const emptySheet = XLSX.utils.aoa_to_sheet([Object.keys(rowData)]);
+      XLSX.utils.book_append_sheet(workbook, emptySheet, config.sheetName);
+    }
+
     data.push(rowData);
 
     const newSheet = XLSX.utils.json_to_sheet(data);
