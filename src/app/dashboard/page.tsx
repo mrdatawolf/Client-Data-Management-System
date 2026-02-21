@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const [managedInfo, setManagedInfo] = useState<any[]>([]);
   const [adminCredentials, setAdminCredentials] = useState<any>({
     adminEmails: [],
-    mitelLogins: [],
+    voipLogins: [],
     acronisBackups: [],
     cloudflareAdmins: []
   });
@@ -167,7 +167,7 @@ export default function DashboardPage() {
         setManagedInfo(managedData.data || []);
         setAdminCredentials({
           adminEmails: adminData.adminEmails || [],
-          mitelLogins: adminData.mitelLogins || [],
+          voipLogins: adminData.voipLogins || [],
           acronisBackups: adminData.acronisBackups || [],
           cloudflareAdmins: adminData.cloudflareAdmins || []
         });
@@ -195,7 +195,7 @@ export default function DashboardPage() {
         setManagedInfo([]);
         setAdminCredentials({
           adminEmails: [],
-          mitelLogins: [],
+          voipLogins: [],
           acronisBackups: [],
           cloudflareAdmins: []
         });
@@ -654,7 +654,7 @@ export default function DashboardPage() {
       setManagedInfo([]);
       setAdminCredentials({
         adminEmails: [],
-        mitelLogins: [],
+        voipLogins: [],
         acronisBackups: [],
         cloudflareAdmins: []
       });
@@ -1140,15 +1140,16 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Mitel Logins */}
+                    {/* VOIP Logins */}
                     <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded p-1.5 flex flex-col overflow-hidden">
                       <h4 className="text-xs font-semibold m-0 mb-1 text-blue-800 dark:text-blue-300">
-                        Mitel ({adminCredentials.mitelLogins.length})
+                        VOIP ({adminCredentials.voipLogins.length})
                       </h4>
-                      {adminCredentials.mitelLogins.length > 0 ? (
+                      {adminCredentials.voipLogins.length > 0 ? (
                         <div className="flex-1 overflow-y-auto text-[1rem]">
-                          {adminCredentials.mitelLogins.map((item: any, idx: number) => (
-                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.mitelLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
+                          {adminCredentials.voipLogins.map((item: any, idx: number) => (
+                            <div key={idx} className={`mb-1 pb-1 ${idx < adminCredentials.voipLogins.length - 1 ? 'border-b border-blue-300 dark:border-blue-700' : ''}`}>
+                              {item.Provider && <div className="text-blue-600 dark:text-blue-400 break-all leading-tight">{item.Provider}</div>}
                               <div className="font-medium text-blue-800 dark:text-blue-300 break-all leading-tight">{item.Login || '-'}</div>
                             </div>
                           ))}
@@ -1410,7 +1411,7 @@ export default function DashboardPage() {
                   { key: 'Notes', label: 'Notes', sortable: true },
                 ]}
                 onAdd={() => setAddModalType('adminEmails')}
-                rowsPerPageOptions={[25, 50]}
+                hidePagination
                 onInactivate={(row) => handleInactivate('adminEmails', row, ['Client', 'Email'])}
                 editable={true}
                 onCellEdit={(row, columnKey, newValue) => handleCellEdit('adminEmails', row, columnKey, newValue, ['Client', 'Email'])}
@@ -1418,26 +1419,27 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Row with Mitel, Acronis, Cloudflare */}
+          {/* Row with VOIP, Acronis, Cloudflare */}
           <div className="flex-1 grid grid-cols-3 gap-4">
-            {/* Mitel */}
+            {/* VOIP */}
             <div className="flex flex-col border-2 border-blue-300 dark:border-blue-700 rounded-lg overflow-hidden">
               <div className="bg-blue-100 dark:bg-blue-900/50 px-4 py-3 font-semibold text-sm text-blue-800 dark:text-blue-300">
-                Mitel Logins ({adminCredentials.mitelLogins.length})
+                VOIP Logins ({adminCredentials.voipLogins.length})
               </div>
               <div className="flex-1 overflow-hidden p-3">
                 <DataTable
-                  data={adminCredentials.mitelLogins}
+                  data={adminCredentials.voipLogins}
                   columns={[
+                    { key: 'Provider', label: 'VOIP Provider', sortable: true },
                     { key: 'Login', label: 'Login', sortable: true },
                     { key: 'Password', label: 'Password', type: 'password', sortable: false },
                   ]}
-                  onAdd={() => setAddModalType('adminMitelLogins')}
-                  rowsPerPageOptions={[10, 25]}
+                  onAdd={() => setAddModalType('adminVoipLogins')}
+                  hidePagination
                   enableExport={false}
-                  onInactivate={(row) => handleInactivate('adminMitelLogins', row, ['Client', 'Login'])}
+                  onInactivate={(row) => handleInactivate('adminVoipLogins', row, ['Client', 'Provider', 'Login'])}
                   editable={true}
-                  onCellEdit={(row, columnKey, newValue) => handleCellEdit('adminMitelLogins', row, columnKey, newValue, ['Client', 'Login'])}
+                  onCellEdit={(row, columnKey, newValue) => handleCellEdit('adminVoipLogins', row, columnKey, newValue, ['Client', 'Provider', 'Login'])}
                 />
               </div>
             </div>
@@ -1455,7 +1457,7 @@ export default function DashboardPage() {
                     { key: 'PW', label: 'Password', type: 'password', sortable: false },
                   ]}
                   onAdd={() => setAddModalType('acronisBackups')}
-                  rowsPerPageOptions={[10, 25]}
+                  hidePagination
                   enableExport={false}
                   onInactivate={(row) => handleInactivate('acronisBackups', row, ['Client', 'UserName'])}
                   editable={true}
@@ -1477,7 +1479,7 @@ export default function DashboardPage() {
                     { key: 'pass', label: 'Password', type: 'password', sortable: false },
                   ]}
                   onAdd={() => setAddModalType('cloudflareAdmins')}
-                  rowsPerPageOptions={[10, 25]}
+                  hidePagination
                   enableExport={false}
                   onInactivate={(row) => handleInactivate('cloudflareAdmins', row, ['Client', 'username'])}
                   editable={true}
@@ -2385,15 +2387,16 @@ export default function DashboardPage() {
       />
 
       <AddRecordModal
-        isOpen={addModalType === 'adminMitelLogins'}
+        isOpen={addModalType === 'adminVoipLogins'}
         onClose={() => setAddModalType(null)}
-        title="Add Mitel Login"
+        title="Add VOIP Login"
         fields={[
           { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Provider', label: 'VOIP Provider', required: true },
           { key: 'Login', label: 'Login', required: true },
           { key: 'Password', label: 'Password', type: 'password', required: true },
         ]}
-        onSave={(data) => handleAddRecord('adminMitelLogins', data)}
+        onSave={(data) => handleAddRecord('adminVoipLogins', data)}
       />
 
       <AddRecordModal

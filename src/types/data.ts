@@ -147,8 +147,9 @@ export interface AdminEmail {
   Automate: number;
 }
 
-export interface AdminMitelLogin {
+export interface AdminVoipLogin {
   Client: string;
+  Provider: string;
   Login: string;
   Password: string;
 }
@@ -363,8 +364,8 @@ export const EXCEL_FILES: Record<string, ExcelFileConfig> = {
     fileName: "Admin Emails.xlsx",
     sheetName: "Admin Emails",
   },
-  adminMitelLogins: {
-    fileName: "Admin Mitel Logins.xlsx",
+  adminVoipLogins: {
+    fileName: "Admin VOIP Logins.xlsx",
     sheetName: "Mitel Admins",
   },
   acronisBackups: {

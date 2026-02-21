@@ -39,6 +39,8 @@ interface DataTableProps {
   // Expandable row props
   expandable?: boolean;
   expandedRowRenderer?: (row: any) => ReactNode;
+  // Pagination control
+  hidePagination?: boolean;
 }
 
 export function DataTable({
@@ -59,6 +61,7 @@ export function DataTable({
   onCellEdit,
   expandable = false,
   expandedRowRenderer,
+  hidePagination = false,
 }: DataTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
@@ -168,12 +171,13 @@ export function DataTable({
 
   // Paginate data
   const paginatedData = useMemo(() => {
+    if (hidePagination) return sortedData;
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     return sortedData.slice(startIndex, endIndex);
-  }, [sortedData, currentPage, rowsPerPage]);
+  }, [sortedData, currentPage, rowsPerPage, hidePagination]);
 
-  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
+  const totalPages = hidePagination ? 1 : Math.ceil(sortedData.length / rowsPerPage);
 
   const handleSort = (key: string) => {
     setSortConfig(prev => {
@@ -524,7 +528,7 @@ export function DataTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center text-sm">
+      {!hidePagination && <div className="flex justify-between items-center text-sm">
         <div className="text-gray-500 dark:text-gray-400">
           Showing {Math.min((currentPage - 1) * rowsPerPage + 1, sortedData.length)} to{' '}
           {Math.min(currentPage * rowsPerPage, sortedData.length)} of {sortedData.length} records
@@ -598,7 +602,7 @@ export function DataTable({
             Last
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
