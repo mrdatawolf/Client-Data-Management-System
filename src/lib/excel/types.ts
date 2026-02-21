@@ -11,7 +11,7 @@ import type {
   ExternalInfo,
   ManagedInfo,
   AdminEmail,
-  AdminMitelLogin,
+  AdminVoipLogin,
   AcronisBackup,
   CloudflareAdmin,
 } from "@/types/data";
