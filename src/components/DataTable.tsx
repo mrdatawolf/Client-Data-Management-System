@@ -11,6 +11,8 @@ interface Column {
   filterable?: boolean;
   hidden?: boolean;
   editable?: boolean;
+  width?: string; // CSS width value e.g., '100px', '8rem', etc.
+  group?: string; // Group label for visually grouping related columns
 }
 
 export interface SortConfig {
@@ -352,8 +354,10 @@ export function DataTable({
                   key={col.key}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                   className={`px-4 py-3 text-left font-semibold text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap select-none ${col.sortable !== false ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : ''}`}
+                  style={col.width ? { width: col.width, minWidth: col.width, maxWidth: col.width } : undefined}
                 >
                   <div className="flex items-center gap-2">
+                    {col.group && <span className="text-[0.6rem] text-gray-400 dark:text-gray-500 mr-1">{col.group}:</span>}
                     {col.label}
                     {sortConfig?.key === col.key && (
                       <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
@@ -401,13 +405,14 @@ export function DataTable({
                           <td
                             key={col.key}
                             onDoubleClick={() => !isCheckbox && isCellEditable && handleCellDoubleClick(rowIndex, col.key, value, col)}
-                            className={`px-4 py-3 max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCheckbox ? 'text-center' : ''} ${isCellEditable && !isEditingThis && !isCheckbox ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
+                            className={`px-4 py-3 ${col.width ? '' : 'max-w-[300px]'} overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-gray-100 ${col.type === 'ip' ? 'font-mono' : ''} ${isCheckbox ? 'text-center' : ''} ${isCellEditable && !isEditingThis && !isCheckbox ? 'cursor-text hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''}`}
+                            style={col.width ? { width: col.width, minWidth: col.width, maxWidth: col.width } : undefined}
                           >
                             {isCheckbox ? (
                               <input
                                 type="checkbox"
-                                checked={value === 1}
-                                onChange={() => isCellEditable && handleCheckboxToggle(rowIndex, col.key, value, row)}
+                                checked={value === 1 || value === '1'}
+                                onChange={() => isCellEditable && handleCheckboxToggle(rowIndex, col.key, value === 1 || value === '1' ? 1 : 0, row)}
                                 disabled={!isCellEditable || isSaving}
                                 className={`w-4 h-4 accent-blue-500 ${isCellEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                               />
