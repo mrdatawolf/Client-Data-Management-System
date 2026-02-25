@@ -1574,13 +1574,13 @@ export default function DashboardPage() {
             { key: 'Email', label: 'Email', type: 'email', sortable: true },
             { key: 'Name', label: 'Name', sortable: true },
             { key: 'Password', label: 'Password', type: 'password', sortable: false },
-            { key: 'Notes', label: 'Notes', sortable: true },
-            { key: 'Active', label: 'Active', sortable: true },
-            { key: 'MFA or Ignore', label: 'MFA', sortable: true },
-            { key: 'OWA_override', label: 'OWA Override', sortable: true },
-            { key: 'IMAP_override', label: 'IMAP Override', sortable: true },
-            { key: 'POP_override', label: 'POP Override', sortable: true },
-            { key: 'SMTP_override', label: 'SMTP Override', sortable: true },
+            { key: 'Notes', label: 'Notes', sortable: true, width: '150px' },
+            { key: 'Active', label: 'Active', type: 'checkbox', sortable: true },
+            { key: 'MFA or Ignore', label: 'MFA', type: 'checkbox', sortable: true },
+            { key: 'OWA_override', label: 'OWA', type: 'checkbox', sortable: true, group: 'Override' },
+            { key: 'IMAP_override', label: 'IMAP', type: 'checkbox', sortable: true, group: 'Override' },
+            { key: 'POP_override', label: 'POP', type: 'checkbox', sortable: true, group: 'Override' },
+            { key: 'SMTP_override', label: 'SMTP', type: 'checkbox', sortable: true, group: 'Override' },
           ]}
           enablePasswordMasking={true}
           enableSearch={true}
@@ -1590,6 +1590,7 @@ export default function DashboardPage() {
           onSortChange={handleSortChange}
           editable={true}
           onCellEdit={(row, columnKey, newValue) => handleCellEdit('emails', row, columnKey, newValue, ['Client', 'Email'])}
+          onAdd={() => setAddModalType('emails')}
           onInactivate={(row) => handleInactivate('emails', row, ['Client', 'Email'])}
         />
       </FullPageModal>
@@ -2421,6 +2422,27 @@ export default function DashboardPage() {
           { key: 'pass', label: 'Password', type: 'password', required: true },
         ]}
         onSave={(data) => handleAddRecord('cloudflareAdmins', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'emails'}
+        onClose={() => setAddModalType(null)}
+        title="Add Email Account"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Username', label: 'Username', required: true },
+          { key: 'Email', label: 'Email', type: 'email', required: true },
+          { key: 'Name', label: 'Name' },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+          { key: 'Active', label: 'Active', type: 'checkbox', defaultValue: 1 },
+          { key: 'MFA or Ignore', label: 'MFA Enabled', type: 'checkbox', defaultValue: 0 },
+          { key: 'OWA_override', label: 'OWA Override', type: 'checkbox', defaultValue: 0 },
+          { key: 'IMAP_override', label: 'IMAP Override', type: 'checkbox', defaultValue: 0 },
+          { key: 'POP_override', label: 'POP Override', type: 'checkbox', defaultValue: 0 },
+          { key: 'SMTP_override', label: 'SMTP Override', type: 'checkbox', defaultValue: 0 },
+        ]}
+        onSave={(data) => handleAddRecord('emails', data)}
       />
     </div>
   );
