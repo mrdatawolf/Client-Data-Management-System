@@ -98,10 +98,15 @@ function createSettingsWindow() {
 function createWindow() {
   const version = getVersion();
 
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'server', 'public', 'smaller_logo.png')
+    : path.join(__dirname, '..', 'public', 'smaller_logo.png');
+
   mainWindow = new BrowserWindow({
     width: config.window.width,
     height: config.window.height,
     title: `${config.window.title} v${version}`,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
