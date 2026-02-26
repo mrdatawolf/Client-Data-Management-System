@@ -146,6 +146,60 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
+  // Handle new window requests (e.g. Guac button) - add navigation toolbar
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const child = new BrowserWindow({
+      width: 1200,
+      height: 900,
+      icon: iconPath,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    // Create a simple navigation bar using HTML injected before the page
+    child.webContents.on('did-finish-load', () => {
+      child.webContents.executeJavaScript(`
+        if (!document.getElementById('electron-nav-bar')) {
+          const nav = document.createElement('div');
+          nav.id = 'electron-nav-bar';
+          nav.style.cssText = 'position:fixed;top:0;left:0;right:0;height:36px;background:#2d2d2d;display:flex;align-items:center;padding:0 8px;gap:6px;z-index:999999;font-family:system-ui,sans-serif;';
+          nav.innerHTML = \`
+            <button id="nav-back" style="background:#444;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:14px;" title="Back">&#9664; Back</button>
+            <button id="nav-forward" style="background:#444;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:14px;" title="Forward">Forward &#9654;</button>
+            <button id="nav-reload" style="background:#444;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:14px;" title="Reload">&#8635;</button>
+            <span id="nav-url" style="color:#aaa;font-size:12px;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
+          \`;
+          document.body.style.paddingTop = '36px';
+          document.body.prepend(nav);
+          document.getElementById('nav-back').addEventListener('click', () => history.back());
+          document.getElementById('nav-forward').addEventListener('click', () => history.forward());
+          document.getElementById('nav-reload').addEventListener('click', () => location.reload());
+          document.getElementById('nav-url').textContent = location.href;
+        }
+      `);
+    });
+
+    // Update URL display on navigation
+    child.webContents.on('did-navigate', () => {
+      child.webContents.executeJavaScript(`
+        const urlEl = document.getElementById('nav-url');
+        if (urlEl) urlEl.textContent = location.href;
+      `).catch(() => {});
+    });
+
+    child.webContents.on('did-navigate-in-page', () => {
+      child.webContents.executeJavaScript(`
+        const urlEl = document.getElementById('nav-url');
+        if (urlEl) urlEl.textContent = location.href;
+      `).catch(() => {});
+    });
+
+    child.loadURL(url);
+    return { action: 'deny' }; // We handle it manually
+  });
+
   // Get server URL from store
   const serverUrl = store.get('serverUrl');
 
