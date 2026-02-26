@@ -1545,6 +1545,7 @@ export default function DashboardPage() {
           onSortChange={handleSortChange}
           editable={true}
           onCellEdit={(row, columnKey, newValue) => handleCellEdit('devices', row, columnKey, newValue, ['client', 'Name'])}
+          onAdd={() => setAddModalType('devices')}
           onInactivate={(row) => handleInactivate('devices', row, ['client', 'Name'])}
         />
       </FullPageModal>
@@ -1559,6 +1560,7 @@ export default function DashboardPage() {
           containers={containers}
           daemons={daemons}
           coreInfra={coreInfra}
+          onAdd={() => setAddModalType('vms')}
         />
       </FullPageModal>
 
@@ -1618,6 +1620,7 @@ export default function DashboardPage() {
           onSortChange={handleSortChange}
           editable={true}
           onCellEdit={(row, columnKey, newValue) => handleCellEdit('services', row, columnKey, newValue, ['Client', 'Service'])}
+          onAdd={() => setAddModalType('services')}
           onInactivate={(row) => handleInactivate('services', row, ['Client', 'Service'])}
         />
       </FullPageModal>
@@ -1687,6 +1690,7 @@ export default function DashboardPage() {
           onSortChange={handleSortChange}
           editable={true}
           onCellEdit={(row, columnKey, newValue) => handleCellEdit('users', row, columnKey, newValue, ['Client', 'Login'])}
+          onAdd={() => setAddModalType('users')}
           onInactivate={(row) => handleInactivate('users', row, ['Client', 'Login'])}
           expandable={true}
           expandedRowRenderer={(row) => (
@@ -1808,6 +1812,7 @@ export default function DashboardPage() {
           onCellEdit={(row, columnKey, newValue) =>
             handleCellEdit('workstations', row, columnKey, newValue, ['Client', 'Computer Name'])
           }
+          onAdd={() => setAddModalType('workstations')}
           onInactivate={(row) => handleInactivate('workstations', row, ['Client', 'Computer Name'])}
           expandable={true}
           expandedRowRenderer={(row) => (
@@ -2422,6 +2427,110 @@ export default function DashboardPage() {
           { key: 'pass', label: 'Password', type: 'password', required: true },
         ]}
         onSave={(data) => handleAddRecord('cloudflareAdmins', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'services'}
+        onClose={() => setAddModalType(null)}
+        title="Add Service"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Service', label: 'Service', required: true },
+          { key: 'Username', label: 'Username' },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Host / URL', label: 'Host/URL' },
+          { key: 'Date of last known change', label: 'Date of Last Known Change' },
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+        ]}
+        onSave={(data) => handleAddRecord('services', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'users'}
+        onClose={() => setAddModalType(null)}
+        title="Add User"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Name', label: 'Name', required: true },
+          { key: 'Login', label: 'Login', required: true },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Computer Name', label: 'Computer Name' },
+          { key: 'SubName', label: 'Location' },
+          { key: 'Phone', label: 'Phone' },
+          { key: 'Cell', label: 'Cell' },
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+          { key: 'Notes 2', label: 'Notes 2', type: 'textarea' },
+          { key: 'Epicor Number', label: 'Epicor #' },
+          { key: 'Active', label: 'Active', type: 'checkbox', defaultValue: 1 },
+          { key: 'Grouping', label: 'Grouping' },
+        ]}
+        onSave={(data) => handleAddRecord('users', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'workstations'}
+        onClose={() => setAddModalType(null)}
+        title="Add Workstation"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Computer Name', label: 'Computer Name', required: true },
+          { key: 'IP Address', label: 'IP Address' },
+          { key: 'Service Tag', label: 'Service Tag' },
+          { key: 'CPU', label: 'CPU' },
+          { key: 'Description', label: 'Description' },
+          { key: 'Upstream', label: 'Upstream' },
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+          { key: 'Notes 2', label: 'Notes 2', type: 'textarea' },
+          { key: 'Active', label: 'Active', type: 'checkbox', defaultValue: 1 },
+          { key: 'Grouping', label: 'Grouping' },
+          { key: 'Asset ID', label: 'Asset ID' },
+          { key: 'Win11 Capable', label: 'Win11 Capable', type: 'checkbox', defaultValue: 0 },
+        ]}
+        onSave={(data) => handleAddRecord('workstations', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'vms'}
+        onClose={() => setAddModalType(null)}
+        title="Add Virtual Machine"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Name', label: 'Name', required: true },
+          { key: 'Location', label: 'Location' },
+          { key: 'IP', label: 'IP Address' },
+          { key: 'Type', label: 'Type' },
+          { key: 'Host', label: 'Host' },
+          { key: 'Startup memory (GB)', label: 'Startup Memory (GB)' },
+          { key: 'Assigned cores', label: 'Assigned Cores' },
+          { key: 'Assigned To', label: 'Assigned To' },
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+          { key: 'Grouping', label: 'Grouping' },
+          { key: 'Active', label: 'Active', type: 'checkbox', defaultValue: 1 },
+          { key: 'Startup Notes', label: 'Startup Notes', type: 'textarea' },
+        ]}
+        onSave={(data) => handleAddRecord('vms', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'devices'}
+        onClose={() => setAddModalType(null)}
+        title="Add Device"
+        fields={[
+          { key: 'client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Name', label: 'Name', required: true },
+          { key: 'IP address', label: 'IP Address' },
+          { key: 'Machine Name / MAC', label: 'Machine Name/MAC' },
+          { key: 'Service Tag', label: 'Service Tag' },
+          { key: 'Login', label: 'Login' },
+          { key: 'Password', label: 'Password', type: 'password' },
+          { key: 'Note', label: 'Note' },
+          { key: 'Note 1', label: 'Note 1' },
+          { key: 'Note 2', label: 'Note 2' },
+          { key: 'Note 3', label: 'Note 3' },
+          { key: 'Grouping', label: 'Grouping' },
+          { key: 'Asset ID', label: 'Asset ID' },
+        ]}
+        onSave={(data) => handleAddRecord('devices', data)}
       />
 
       <AddRecordModal

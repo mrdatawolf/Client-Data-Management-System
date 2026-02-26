@@ -80,9 +80,10 @@ interface HostGroupedViewProps {
   daemons: Daemon[];
   coreInfra: CoreInfrastructure[];
   onSearch?: (term: string) => void;
+  onAdd?: () => void;
 }
 
-export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGroupedViewProps) {
+export function HostGroupedView({ vms, containers, daemons, coreInfra, onAdd }: HostGroupedViewProps) {
   const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHost, setSelectedHost] = useState<CoreInfrastructure | null>(null);
@@ -374,6 +375,14 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra }: HostGro
         >
           Collapse All
         </button>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors"
+          >
+            + Add New
+          </button>
+        )}
         <div className="text-[0.8125rem] text-gray-500 dark:text-gray-400">
           {Object.keys(groupedData).length} hosts | {vms.length} VMs | {containers.length} containers | {daemons.length} daemons
         </div>
