@@ -1161,7 +1161,11 @@ export default function DashboardPage() {
 
                     {/* Acronis Backups */}
                     <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded p-1.5 flex flex-col overflow-hidden">
-                      <h4 className="text-xs font-semibold m-0 mb-1 text-green-800 dark:text-green-300">
+                      <h4
+                        className="text-xs font-semibold m-0 mb-1 text-green-800 dark:text-green-300 cursor-pointer hover:underline"
+                        onClick={() => setOpenModal('acronisDetail')}
+                        title="Click to view full Acronis backup details"
+                      >
                         Acronis ({adminCredentials.acronisBackups.length})
                       </h4>
                       {adminCredentials.acronisBackups.length > 0 ? (
@@ -1446,7 +1450,11 @@ export default function DashboardPage() {
 
             {/* Acronis */}
             <div className="flex flex-col border-2 border-green-300 dark:border-green-700 rounded-lg overflow-hidden">
-              <div className="bg-green-100 dark:bg-green-900/50 px-4 py-3 font-semibold text-sm text-green-800 dark:text-green-300">
+              <div
+                className="bg-green-100 dark:bg-green-900/50 px-4 py-3 font-semibold text-sm text-green-800 dark:text-green-300 cursor-pointer hover:bg-green-200 dark:hover:bg-green-900/70 transition-colors"
+                onClick={() => setOpenModal('acronisDetail')}
+                title="Click to view full Acronis backup details"
+              >
                 Acronis Backups ({adminCredentials.acronisBackups.length})
               </div>
               <div className="flex-1 overflow-hidden p-3">
@@ -1561,6 +1569,37 @@ export default function DashboardPage() {
           daemons={daemons}
           coreInfra={coreInfra}
           onAdd={() => setAddModalType('vms')}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'acronisDetail'}
+        onClose={() => setOpenModal(null)}
+        title="Acronis Backup Details"
+      >
+        <DataTable
+          data={adminCredentials.acronisBackups}
+          columns={[
+            { key: 'Acronis Cyber Cloud ', label: 'Acronis Cyber Cloud', sortable: true },
+            { key: 'UserName', label: 'Username', sortable: true },
+            { key: 'PW', label: 'Password', type: 'password', sortable: false },
+            { key: 'Encrypt PW', label: 'Encrypt PW', type: 'password', sortable: false },
+            { key: 'Encrypt PW2', label: 'Encrypt PW2', type: 'password', sortable: false },
+            { key: 'Encrypt PW3', label: 'Encrypt PW3', type: 'password', sortable: false },
+            { key: 'Encrypt PW4', label: 'Encrypt PW4', type: 'password', sortable: false },
+            { key: 'Encrypt PW 5', label: 'Encrypt PW 5', type: 'password', sortable: false },
+            { key: 'Encrypt PW 6', label: 'Encrypt PW 6', type: 'password', sortable: false },
+            { key: 'Encrypt PW 7', label: 'Encrypt PW 7', type: 'password', sortable: false },
+          ]}
+          enablePasswordMasking={true}
+          enableSearch={true}
+          enableExport={true}
+          tableId="acronisDetail"
+          defaultSort={getSortConfig('acronisDetail')}
+          onSortChange={handleSortChange}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('acronisBackups', row, columnKey, newValue, ['Client', 'UserName'])}
+          onInactivate={(row) => handleInactivate('acronisBackups', row, ['Client', 'UserName'])}
         />
       </FullPageModal>
 
