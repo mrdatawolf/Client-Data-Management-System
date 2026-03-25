@@ -182,7 +182,7 @@ export default function DashboardPage() {
         setEmails(emailsData.data || []);
         setUsers(usersData.data || []);
         setWorkstations(workstationsData.data || []);
-        setMiscData(miscResult.data || []);
+        setMiscData((miscResult.data || []).map((row: any, idx: number) => ({ ...row, _rowIndex: idx })));
         setPhoneNumbers(phoneData.data || []);
         setWebsites(websitesData.data || []);
         setLoadingData(false);
@@ -496,6 +496,93 @@ export default function DashboardPage() {
       return false;
     }
   }, [fetchClientData]);
+
+  // Handle misc cell edit - uses per-client misc endpoint
+  const handleMiscCellEdit = useCallback(async (
+    row: any,
+    columnKey: string,
+    newValue: any
+  ): Promise<boolean> => {
+    if (!selectedClient) return false;
+    try {
+      const response = await fetch(`/api/data/misc/${selectedClient}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCell',
+          rowIndex: row._rowIndex,
+          columnKey,
+          newValue,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to save: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save misc edit:', error);
+      alert('Failed to save changes. Please try again.');
+      return false;
+    }
+  }, [selectedClient, fetchClientData]);
+
+  const handleMiscAddRow = useCallback(async (
+    rowData: Record<string, any>
+  ): Promise<boolean> => {
+    if (!selectedClient) return false;
+    try {
+      const response = await fetch(`/api/data/misc/${selectedClient}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'addRow',
+          rowData,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to add record');
+      }
+    } catch (error: any) {
+      console.error('Failed to add misc record:', error);
+      throw error;
+    }
+  }, [selectedClient, fetchClientData]);
+
+  const handleMiscDeleteRow = useCallback(async (
+    row: any
+  ): Promise<boolean> => {
+    if (!selectedClient) return false;
+    try {
+      const response = await fetch(`/api/data/misc/${selectedClient}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteRow',
+          rowIndex: row._rowIndex,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchClientData();
+        return true;
+      } else {
+        alert(`Failed to delete: ${result.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to delete misc record:', error);
+      alert('Failed to delete. Please try again.');
+      return false;
+    }
+  }, [selectedClient, fetchClientData]);
 
   // Save selected client to localStorage and server
   const saveClientPreference = useCallback(async (client: string) => {
@@ -1521,6 +1608,10 @@ export default function DashboardPage() {
           ]}
           enableSearch={true}
           enableExport={true}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleMiscCellEdit(row, columnKey, newValue)}
+          onAdd={() => setAddModalType('misc')}
+          onInactivate={(row) => handleMiscDeleteRow(row)}
         />
       </FullPageModal>
 
@@ -2591,6 +2682,24 @@ export default function DashboardPage() {
           { key: 'SMTP_override', label: 'SMTP Override', type: 'checkbox', defaultValue: 0 },
         ]}
         onSave={(data) => handleAddRecord('emails', data)}
+      />
+      <AddRecordModal
+        isOpen={addModalType === 'misc'}
+        onClose={() => setAddModalType(null)}
+        title="Add Misc Note"
+        fields={[
+          { key: 'Notes', label: 'Notes', type: 'textarea' },
+          { key: 'Notes 1', label: 'Notes 1', type: 'textarea' },
+          { key: 'Notes 2', label: 'Notes 2', type: 'textarea' },
+          { key: 'Notes 3', label: 'Notes 3', type: 'textarea' },
+          { key: 'Notes 4', label: 'Notes 4', type: 'textarea' },
+          { key: 'Notes 5', label: 'Notes 5', type: 'textarea' },
+          { key: 'Notes 6', label: 'Notes 6', type: 'textarea' },
+          { key: 'Notes 7', label: 'Notes 7', type: 'textarea' },
+          { key: 'Notes 8', label: 'Notes 8', type: 'textarea' },
+          { key: 'Notes 9', label: 'Notes 9', type: 'textarea' },
+        ]}
+        onSave={(data) => handleMiscAddRow(data)}
       />
     </div>
   );
