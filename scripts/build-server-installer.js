@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const http = require('http');
 const { execSync } = require('child_process');
 
 // Configuration
@@ -17,6 +18,8 @@ const NODE_VERSION = '20.11.0'; // LTS version
 const NODE_ARCH = 'win-x64';
 const NODE_FILENAME = `node-v${NODE_VERSION}-${NODE_ARCH}`;
 const NODE_URL = `https://nodejs.org/dist/v${NODE_VERSION}/${NODE_FILENAME}.zip`;
+const SERVER_PORT = 6030;
+const MAX_REDIRECTS = 5;
 
 const ROOT_DIR = path.join(__dirname, '..');
 const DIST_SERVER_DIR = path.join(ROOT_DIR, 'dist-server');
@@ -25,34 +28,45 @@ const TEMP_DIR = path.join(ROOT_DIR, 'temp-server-build');
 const NODE_CACHE_DIR = path.join(ROOT_DIR, '.node-portable');
 const OUTPUT_DIR = path.join(ROOT_DIR, 'dist-electron');
 
-// Read version from package.json
 function getVersion() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
   return packageJson.version;
 }
 
-// Download file with progress
-function downloadFile(url, destPath) {
+function downloadFile(url, destPath, redirectCount = 0) {
   return new Promise((resolve, reject) => {
-    console.log(`Downloading: ${url}`);
-    const file = fs.createWriteStream(destPath);
+    if (redirectCount > MAX_REDIRECTS) {
+      return reject(new Error(`Too many redirects (>${MAX_REDIRECTS})`));
+    }
 
-    https.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        // Follow redirect
-        file.close();
-        fs.unlinkSync(destPath);
-        downloadFile(response.headers.location, destPath).then(resolve).catch(reject);
+    if (redirectCount === 0) {
+      console.log(`Downloading: ${url}`);
+    }
+
+    const client = url.startsWith('https') ? https : http;
+
+    client.get(url, (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        response.resume(); // Drain the response
+        downloadFile(response.headers.location, destPath, redirectCount + 1).then(resolve).catch(reject);
         return;
       }
 
+      if (response.statusCode !== 200) {
+        response.resume();
+        return reject(new Error(`Download failed: HTTP ${response.statusCode}`));
+      }
+
+      const file = fs.createWriteStream(destPath);
       const totalSize = parseInt(response.headers['content-length'], 10);
       let downloadedSize = 0;
 
       response.on('data', (chunk) => {
         downloadedSize += chunk.length;
-        const percent = ((downloadedSize / totalSize) * 100).toFixed(1);
-        process.stdout.write(`\rDownloading: ${percent}%`);
+        if (totalSize) {
+          const percent = ((downloadedSize / totalSize) * 100).toFixed(1);
+          process.stdout.write(`\rDownloading: ${percent}%`);
+        }
       });
 
       response.pipe(file);
@@ -62,6 +76,12 @@ function downloadFile(url, destPath) {
         console.log('\nDownload complete.');
         resolve();
       });
+
+      file.on('error', (err) => {
+        file.close();
+        fs.unlink(destPath, () => {});
+        reject(err);
+      });
     }).on('error', (err) => {
       fs.unlink(destPath, () => {});
       reject(err);
@@ -69,7 +89,6 @@ function downloadFile(url, destPath) {
   });
 }
 
-// Extract zip file using PowerShell
 function extractZip(zipPath, destDir) {
   console.log(`Extracting: ${zipPath}`);
   execSync(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`, {
@@ -77,20 +96,25 @@ function extractZip(zipPath, destDir) {
   });
 }
 
-// Windows reserved device names that cause NSIS build failures
-const EXCLUDE_FILES = ['nul', 'con', 'prn', 'aux'];
+// Windows reserves these base names (with or without extension) — they cause NSIS build failures
+const RESERVED_NAMES = new Set([
+  'con', 'prn', 'aux', 'nul',
+  'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9',
+  'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9',
+]);
 
-// Copy directory recursively
+function isReservedName(filename) {
+  const baseName = filename.toLowerCase().replace(/\.[^.]*$/, '');
+  return RESERVED_NAMES.has(baseName);
+}
+
 function copyDir(src, dest) {
-  if (!fs.existsSync(dest)) {
-    fs.mkdirSync(dest, { recursive: true });
-  }
+  fs.mkdirSync(dest, { recursive: true });
 
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
-    // Skip Windows reserved device names
-    if (EXCLUDE_FILES.includes(entry.name.toLowerCase())) {
+    if (isReservedName(entry.name)) {
       console.log(`  Skipping reserved name: ${entry.name}`);
       continue;
     }
@@ -106,7 +130,6 @@ function copyDir(src, dest) {
   }
 }
 
-// Clean directory
 function cleanDir(dir) {
   if (fs.existsSync(dir)) {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -114,7 +137,26 @@ function cleanDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-// Main build function
+function findMakensis() {
+  const nsisLocations = [
+    'C:\\Program Files (x86)\\NSIS\\makensis.exe',
+    'C:\\Program Files\\NSIS\\makensis.exe',
+    path.join(ROOT_DIR, 'node_modules', 'electron-builder', 'node_modules', 'app-builder-bin', 'win', 'x64', 'nsis', 'makensis.exe'),
+  ];
+
+  for (const loc of nsisLocations) {
+    if (fs.existsSync(loc)) {
+      return loc;
+    }
+  }
+
+  try {
+    return execSync('where makensis', { encoding: 'utf8' }).trim().split('\n')[0];
+  } catch (e) {
+    return null;
+  }
+}
+
 async function build() {
   const version = getVersion();
 
@@ -126,47 +168,51 @@ async function build() {
   console.log('========================================');
   console.log('');
 
-  // Check dist-server exists
   if (!fs.existsSync(DIST_SERVER_DIR)) {
     console.error('Error: dist-server not found. Run "npm run build:standalone" first.');
     process.exit(1);
   }
 
-  // Create temp build directory
+  // Fail fast if NSIS is not available before doing expensive copy work
+  const makensisPath = findMakensis();
+  if (!makensisPath) {
+    console.error('');
+    console.error('Error: NSIS (makensis) not found.');
+    console.error('Please install NSIS from: https://nsis.sourceforge.io/Download');
+    console.error('Or run: winget install NSIS.NSIS');
+    process.exit(1);
+  }
+
   console.log('Preparing build directory...');
   cleanDir(TEMP_DIR);
 
-  // Download Node.js if not cached
-  const nodeZipPath = path.join(NODE_CACHE_DIR, `${NODE_FILENAME}.zip`);
-  const nodeExtractPath = path.join(NODE_CACHE_DIR, NODE_FILENAME);
+  try {
+    // Download Node.js if not cached
+    const nodeZipPath = path.join(NODE_CACHE_DIR, `${NODE_FILENAME}.zip`);
+    const nodeExtractPath = path.join(NODE_CACHE_DIR, NODE_FILENAME);
 
-  if (!fs.existsSync(nodeExtractPath)) {
-    if (!fs.existsSync(NODE_CACHE_DIR)) {
+    if (!fs.existsSync(nodeExtractPath)) {
       fs.mkdirSync(NODE_CACHE_DIR, { recursive: true });
+
+      if (!fs.existsSync(nodeZipPath)) {
+        await downloadFile(NODE_URL, nodeZipPath);
+      }
+
+      extractZip(nodeZipPath, NODE_CACHE_DIR);
+    } else {
+      console.log('Using cached Node.js...');
     }
 
-    if (!fs.existsSync(nodeZipPath)) {
-      await downloadFile(NODE_URL, nodeZipPath);
-    }
+    console.log('Copying server files...');
+    const serverDestDir = path.join(TEMP_DIR, 'server');
+    copyDir(DIST_SERVER_DIR, serverDestDir);
 
-    extractZip(nodeZipPath, NODE_CACHE_DIR);
-  } else {
-    console.log('Using cached Node.js...');
-  }
+    console.log('Copying Node.js runtime...');
+    const nodeDestDir = path.join(TEMP_DIR, 'node');
+    copyDir(nodeExtractPath, nodeDestDir);
 
-  // Copy server files
-  console.log('Copying server files...');
-  const serverDestDir = path.join(TEMP_DIR, 'server');
-  copyDir(DIST_SERVER_DIR, serverDestDir);
-
-  // Copy Node.js
-  console.log('Copying Node.js runtime...');
-  const nodeDestDir = path.join(TEMP_DIR, 'node');
-  copyDir(nodeExtractPath, nodeDestDir);
-
-  // Create launcher batch file
-  console.log('Creating launcher...');
-  const launcherContent = `@echo off
+    console.log('Creating launcher...');
+    const launcherContent = `@echo off
 title Client Data Management Server v${version}
 cd /d "%~dp0server"
 echo.
@@ -178,7 +224,7 @@ echo.
 echo Starting server...
 echo Configuration loaded from .env file
 echo.
-echo Open your browser to: http://localhost:6030
+echo Open your browser to: http://localhost:${SERVER_PORT}
 echo.
 echo Press Ctrl+C to stop the server
 echo ========================================
@@ -188,23 +234,22 @@ echo.
 
 pause
 `;
-  fs.writeFileSync(path.join(TEMP_DIR, 'Start Server.bat'), launcherContent);
+    fs.writeFileSync(path.join(TEMP_DIR, 'Start Server.bat'), launcherContent);
 
-  // Create NSIS script
-  console.log('Creating installer script...');
-  const installerName = `ClientDataManagement_Server_Setup_${version}`;
-  const iconPath = path.join(BUILD_DIR, 'icon.ico');
-  const hasIcon = fs.existsSync(iconPath);
+    console.log('Creating installer script...');
+    const installerName = `ClientDataManagement_Server_Setup_${version}`;
+    const iconPath = path.join(BUILD_DIR, 'icon.ico');
+    const hasIcon = fs.existsSync(iconPath);
 
-  if (!hasIcon) {
-    console.log('Note: No icon.ico found in build/ folder. Using default icon.');
-  }
+    if (!hasIcon) {
+      console.log('Note: No icon.ico found in build/ folder. Using default icon.');
+    }
 
-  const iconLines = hasIcon ? `
+    const iconLines = hasIcon ? `
 !define MUI_ICON "${BUILD_DIR}\\icon.ico"
 !define MUI_UNICON "${BUILD_DIR}\\icon.ico"` : '';
 
-  const nsisScript = `
+    const nsisScript = `
 ; NSIS Installer Script for Client Data Management Server
 ; Generated by build-server-installer.js
 
@@ -281,52 +326,12 @@ Section "Uninstall"
 SectionEnd
 `;
 
-  const nsisScriptPath = path.join(TEMP_DIR, 'installer.nsi');
-  fs.writeFileSync(nsisScriptPath, nsisScript);
+    const nsisScriptPath = path.join(TEMP_DIR, 'installer.nsi');
+    fs.writeFileSync(nsisScriptPath, nsisScript);
 
-  // Ensure output directory exists
-  if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  }
 
-  // Run NSIS
-  console.log('Building installer...');
-  try {
-    // Try to find makensis in common locations
-    const nsisLocations = [
-      'C:\\Program Files (x86)\\NSIS\\makensis.exe',
-      'C:\\Program Files\\NSIS\\makensis.exe',
-      path.join(ROOT_DIR, 'node_modules', 'electron-builder', 'node_modules', 'app-builder-bin', 'win', 'x64', 'nsis', 'makensis.exe'),
-    ];
-
-    let makensisPath = null;
-    for (const loc of nsisLocations) {
-      if (fs.existsSync(loc)) {
-        makensisPath = loc;
-        break;
-      }
-    }
-
-    // Try to find via where command
-    if (!makensisPath) {
-      try {
-        makensisPath = execSync('where makensis', { encoding: 'utf8' }).trim().split('\n')[0];
-      } catch (e) {
-        // Not found in PATH
-      }
-    }
-
-    if (!makensisPath) {
-      console.error('');
-      console.error('Error: NSIS (makensis) not found.');
-      console.error('Please install NSIS from: https://nsis.sourceforge.io/Download');
-      console.error('Or run: winget install NSIS.NSIS');
-      console.error('');
-      console.error('Build files are ready in: ' + TEMP_DIR);
-      console.error('You can manually run makensis on: ' + nsisScriptPath);
-      process.exit(1);
-    }
-
+    console.log('Building installer...');
     execSync(`"${makensisPath}" "${nsisScriptPath}"`, { stdio: 'inherit' });
 
     console.log('');
@@ -338,14 +343,16 @@ SectionEnd
     console.log('========================================');
     console.log('');
 
-    // Cleanup temp directory
-    console.log('Cleaning up...');
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-
-  } catch (err) {
-    console.error('Error building installer:', err.message);
-    process.exit(1);
+  } finally {
+    // Always clean up temp directory, even on failure
+    if (fs.existsSync(TEMP_DIR)) {
+      console.log('Cleaning up...');
+      fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    }
   }
 }
 
-build().catch(console.error);
+build().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
