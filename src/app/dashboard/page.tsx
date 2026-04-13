@@ -1346,9 +1346,9 @@ export default function DashboardPage() {
           defaultSort={getSortConfig('coreInfra')}
           onSortChange={handleSortChange}
           editable={true}
-          onCellEdit={(row, columnKey, newValue) => handleCellEdit('core', row, columnKey, newValue, ['Client', 'Name'])}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('core', row, columnKey, newValue, ['Client', 'Name', 'IP address'])}
           onAdd={() => setAddModalType('core')}
-          onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
+          onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name', 'IP address'])}
         />
       </FullPageModal>
 
