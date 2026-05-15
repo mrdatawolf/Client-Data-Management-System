@@ -119,10 +119,12 @@ export interface ExternalInfo {
   "Asset ID": string;
 }
 
-// Managed WAN info
+// Points of Contact (ISP/provider contacts)
 export interface ManagedInfo {
   Client: string;
   Provider: string;
+  Name: string;
+  Email: string;
   "IP 1": string;
   "IP 2": string;
   Managed: number;
