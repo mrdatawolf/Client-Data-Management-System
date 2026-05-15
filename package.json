@@ -1,6 +1,6 @@
 {
   "name": "client-data-management-system",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
   "scripts": {
     "dev": "next dev -p 6030",
@@ -18,7 +18,7 @@
     "electron:build": "node scripts/sync-version.js && electron-builder --config electron-builder.json",
     "server:installer": "node scripts/build-server-installer.js",
     "build:all": "npm run clean && npm run build && npm run build:standalone && npm run electron:build && npm run server:installer && node scripts/copy-to-distribute.js",
-    "clean": "node -e \"const fs=require('fs'); ['dist-electron','dist-server','temp-server-build'].forEach(d=>{if(fs.existsSync(d)){fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned: '+d)}})\"",
+    "clean": "node -e \"const fs=require('fs'); ['dist-electron','dist-server','temp-server-build','.next'].forEach(d=>{if(fs.existsSync(d)){fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned: '+d)}})\"",
     "clean:all": "npm run clean && node -e \"const fs=require('fs'); ['.node-portable','.next'].forEach(d=>{if(fs.existsSync(d)){fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned: '+d)}})\"",
     "db:reset": "tsx scripts/reset-database.ts",
     "auth:init": "tsx scripts/init-auth-db.ts",

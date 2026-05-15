@@ -28,8 +28,8 @@ console.log('');
 console.log('Packaging standalone server for distribution...');
 
 const distDir = path.join(__dirname, '..', 'dist-server');
-// Next.js standalone creates a nested folder with the project name
-const standaloneDir = path.join(__dirname, '..', '.next', 'standalone', 'client-data-management-system');
+// Next.js standalone output is at .next/standalone/ (server.js at root, not in a project-name subdirectory)
+const standaloneDir = path.join(__dirname, '..', '.next', 'standalone');
 const publicDir = path.join(__dirname, '..', 'public');
 const staticDir = path.join(__dirname, '..', '.next', 'static');
 
