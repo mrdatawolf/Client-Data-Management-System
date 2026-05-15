@@ -1158,13 +1158,13 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Managed WAN Info */}
+                {/* Points of Contact */}
                 <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm flex flex-col overflow-hidden">
                   <h3
                     onClick={() => setOpenModal('managedInfo')}
                     className="text-[0.9375rem] font-semibold px-4 py-2.5 m-0 border-b-2 border-violet-500 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 cursor-pointer transition-all text-center hover:bg-violet-100 dark:hover:bg-violet-900/50"
                   >
-                    Managed WAN Info (Special ISP notes)
+                    Points of Contact
                   </h3>
                   {loadingData ? (
                     <p className="text-gray-500 dark:text-gray-400 p-4 text-sm">Loading...</p>
@@ -1174,25 +1174,28 @@ export default function DashboardPage() {
                         <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-[1]">
                           <tr className="border-b border-gray-200 dark:border-gray-600">
                             <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Provider</th>
-                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Type</th>
-                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">IP 1</th>
-                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Account #</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Name</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Phone</th>
+                            <th className="p-1.5 text-left font-semibold text-[0.6875rem] text-gray-700 dark:text-gray-300">Email</th>
                           </tr>
                         </thead>
                         <tbody>
                           {managedInfo.map((item, idx) => (
-                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Provider || '-'}</td>
-                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Type || '-'}</td>
-                              <td className="p-1.5 font-mono text-gray-900 dark:text-gray-100">{item['IP 1'] || '-'}</td>
-                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Account #'] || '-'}</td>
+                            <tr
+                              key={idx}
+                              className={`border-b ${item.Provider === selectedClient ? 'bg-violet-100 dark:bg-violet-900/40 border-violet-200 dark:border-violet-700' : 'border-gray-100 dark:border-gray-700'}`}
+                            >
+                              <td className={`p-1.5 font-semibold ${item.Provider === selectedClient ? 'text-violet-700 dark:text-violet-300' : 'text-gray-900 dark:text-gray-100'}`}>{item.Provider || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Name || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item['Phone 1'] || '-'}</td>
+                              <td className="p-1.5 text-gray-900 dark:text-gray-100">{item.Email || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   ) : (
-                    <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No managed WAN info</p>
+                    <p className="text-gray-400 dark:text-gray-500 p-4 italic text-sm">No contacts</p>
                   )}
                 </div>
 
@@ -1457,20 +1460,22 @@ export default function DashboardPage() {
       <FullPageModal
         isOpen={openModal === 'managedInfo'}
         onClose={() => setOpenModal(null)}
-        title="Managed WAN Info (ISP)"
+        title="Points of Contact"
       >
         <DataTable
           data={managedInfo}
           columns={[
             { key: 'Provider', label: 'Provider', sortable: true },
+            { key: 'Name', label: 'Contact Name', sortable: true },
+            { key: 'Email', label: 'Email', sortable: true },
+            { key: 'Phone 1', label: 'Phone 1', sortable: true },
+            { key: 'Phone 2', label: 'Phone 2', sortable: true },
+            { key: 'Phone 3', label: 'Phone 3', sortable: true },
+            { key: 'Phone 4', label: 'Phone 4', sortable: true },
+            { key: 'Account #', label: 'Account Number', sortable: true },
             { key: 'Type', label: 'Connection Type', sortable: true },
             { key: 'IP 1', label: 'Primary IP', type: 'ip', sortable: true },
             { key: 'IP 2', label: 'Secondary IP', type: 'ip', sortable: true },
-            { key: 'Account #', label: 'Account Number', sortable: true },
-            { key: 'Phone 1', label: 'Support Phone 1', sortable: true },
-            { key: 'Phone 2', label: 'Support Phone 2', sortable: true },
-            { key: 'Phone 3', label: 'Support Phone 3', sortable: true },
-            { key: 'Phone 4', label: 'Support Phone 4', sortable: true },
             { key: 'Note 1', label: 'Notes 1', sortable: true },
             { key: 'Note 2', label: 'Notes 2', sortable: true },
           ]}

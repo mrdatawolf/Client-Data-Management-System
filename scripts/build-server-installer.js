@@ -281,6 +281,11 @@ RequestExecutionLevel user
 
 ; Installer Section
 Section "Install"
+  ; Remove old server and node files before installing fresh copies
+  RMDir /r "$INSTDIR\\server"
+  RMDir /r "$INSTDIR\\node"
+  Delete "$INSTDIR\\Start Server.bat"
+
   SetOutPath "$INSTDIR"
 
   ; Copy all files
