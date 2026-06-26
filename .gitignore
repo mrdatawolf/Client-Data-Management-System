@@ -52,7 +52,7 @@ release/
 # Database
 *.db
 *.db-journal
-data/
+/data/
 
 # Logs
 logs/

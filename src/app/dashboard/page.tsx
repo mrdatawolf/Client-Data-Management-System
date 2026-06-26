@@ -66,6 +66,10 @@ export default function DashboardPage() {
 
   // Add record modal state
   const [addModalType, setAddModalType] = useState<string | null>(null);
+  const [clientsMenuOpen, setClientsMenuOpen] = useState(false);
+  const [companyModalMode, setCompanyModalMode] = useState<'add' | 'selectForUpdate' | 'update' | null>(null);
+  const [companyEditTarget, setCompanyEditTarget] = useState<string | null>(null);
+  const [companyEditData, setCompanyEditData] = useState<Record<string, any> | null>(null);
 
   // Sort preferences state (user's saved sort preferences per table)
   const [sortPreferences, setSortPreferences] = useState<Record<string, SortConfig>>({});
@@ -429,6 +433,71 @@ export default function DashboardPage() {
       throw error;
     }
   }, [fetchClientData]);
+
+  const refreshClients = useCallback(async () => {
+    try {
+      const clientsRes = await fetch('/api/data/clients');
+      const clientsData = await clientsRes.json();
+      setClients(clientsData.clients || []);
+    } catch (error) {
+      console.error('Failed to reload clients:', error);
+    }
+  }, []);
+
+  const handleSelectCompanyForUpdate = useCallback(async (
+    data: Record<string, any>
+  ): Promise<boolean> => {
+    const client = clients.find(c => c.label === data.companyLabel);
+    if (!client) {
+      throw new Error('Company not found');
+    }
+
+    const response = await fetch(`/api/data/companies?abbrv=${encodeURIComponent(client.value)}`);
+    const result = await response.json();
+
+    if (!response.ok || !result.company) {
+      throw new Error(result.error || 'Failed to load company details');
+    }
+
+    setCompanyEditTarget(client.value);
+    setCompanyEditData(result.company);
+    setCompanyModalMode('update');
+    return true;
+  }, [clients]);
+
+  const handleCompanySave = useCallback(async (
+    mode: 'add' | 'update',
+    data: Record<string, any>
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/data/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: mode,
+          rowData: data,
+          rowIdentifier: mode === 'update' ? { Abbrv: companyEditTarget } : undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to save company');
+      }
+
+      await refreshClients();
+
+      if (mode === 'update' && companyEditTarget) {
+        setSelectedClient(companyEditTarget);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Failed to save company:', error);
+      throw error;
+    }
+  }, [refreshClients, companyEditTarget]);
 
   // Handle whois autopopulate for websites modal
   const handleWhoisLookup = useCallback(async (): Promise<Record<string, any> | null> => {
@@ -954,23 +1023,61 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setOpenModal(openModal === 'userMenu' ? null : 'userMenu')}
-              className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-            >
-              <span className="font-medium">{user.username}</span>
-              <span className="text-xs">▼</span>
-            </button>
-            {openModal === 'userMenu' && (
-              <>
-                {/* Backdrop to close menu */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setOpenModal(null)}
-                />
-                {/* Dropdown menu */}
-                <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 py-1">
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <button
+                onClick={() => setClientsMenuOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <span className="font-medium">Clients</span>
+                <span className="text-xs">▼</span>
+              </button>
+              {clientsMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setClientsMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 py-1">
+                    <button
+                      onClick={() => {
+                        setClientsMenuOpen(false);
+                        setCompanyModalMode('add');
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => {
+                        setClientsMenuOpen(false);
+                        setCompanyModalMode('selectForUpdate');
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Update
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setOpenModal(openModal === 'userMenu' ? null : 'userMenu')}
+                className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <span className="font-medium">{user.username}</span>
+                <span className="text-xs">▼</span>
+              </button>
+              {openModal === 'userMenu' && (
+                <>
+                  {/* Backdrop to close menu */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setOpenModal(null)}
+                  />
+                  {/* Dropdown menu */}
+                  <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 py-1">
                   {/* Theme options */}
                   <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">
                     Theme
@@ -1001,18 +1108,19 @@ export default function DashboardPage() {
                   </button>
                   <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
                   {/* Logout */}
-                  <button
-                    onClick={() => {
-                      setOpenModal(null);
-                      handleLogout();
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </>
-            )}
+                    <button
+                      onClick={() => {
+                        setOpenModal(null);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -2433,6 +2541,47 @@ export default function DashboardPage() {
           </div>
         </div>
       </FullPageModal>
+
+      {/* Client Company Modals */}
+      <AddRecordModal
+        isOpen={companyModalMode === 'add'}
+        onClose={() => setCompanyModalMode(null)}
+        title="Add Client Company"
+        fields={[
+          { key: 'Company Name', label: 'Company Name', required: true },
+          { key: 'Abbrv', label: 'Abbreviation', required: true },
+          { key: 'Group', label: 'Group' },
+          { key: 'Status', label: 'Status', type: 'select', options: ['0', '1', '2'], defaultValue: '0' },
+        ]}
+        onSave={(data) => handleCompanySave('add', data)}
+      />
+
+      <AddRecordModal
+        isOpen={companyModalMode === 'selectForUpdate'}
+        onClose={() => setCompanyModalMode(prev => prev === 'selectForUpdate' ? null : prev)}
+        title="Select Company to Update"
+        fields={[
+          { key: 'companyLabel', label: 'Company', required: true, type: 'select', options: clients.map(client => client.label) },
+        ]}
+        onSave={(data) => handleSelectCompanyForUpdate(data)}
+      />
+
+      <AddRecordModal
+        isOpen={companyModalMode === 'update'}
+        onClose={() => {
+          setCompanyModalMode(null);
+          setCompanyEditTarget(null);
+          setCompanyEditData(null);
+        }}
+        title="Update Client Company"
+        fields={[
+          { key: 'Abbrv', label: 'Abbreviation', autoFill: true, defaultValue: companyEditTarget || '' },
+          { key: 'Company Name', label: 'Company Name', required: true, defaultValue: companyEditData?.['Company Name'] || '' },
+          { key: 'Group', label: 'Group', defaultValue: companyEditData?.Group || '' },
+          { key: 'Status', label: 'Status', type: 'select', options: ['0', '1', '2'], defaultValue: String(companyEditData?.Status ?? '0') },
+        ]}
+        onSave={(data) => handleCompanySave('update', data)}
+      />
 
       {/* Add Record Modals */}
       <AddRecordModal
