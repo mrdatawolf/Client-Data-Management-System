@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 
 /**
- * Logout endpoint - clears the session cookie
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log out
+ *     description: Clears the `session` cookie. Works with or without a valid session.
+ *     security: []
+ *     responses:
+ *       200: { description: Logged out — session cookie cleared }
  */
 export async function POST() {
   const response = NextResponse.json({ message: "Logged out successfully" });

@@ -7,34 +7,30 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getPreference, setPreference, deletePreference } from "@/lib/preferences/db";
+import { getSessionUser } from "@/lib/auth/session";
 
 interface RouteContext {
   params: Promise<{ key: string }>;
 }
 
-// Helper to get user from session cookie
-function getUserFromSession(request: NextRequest): { id: string; username: string; role: string } | null {
-  // Check if auth is disabled
-  if (process.env.DISABLE_AUTH === "true") {
-    return { id: "guest", username: "guest", role: "admin" };
-  }
-
-  const sessionCookie = request.cookies.get("session");
-  if (!sessionCookie?.value) return null;
-
-  try {
-    return JSON.parse(Buffer.from(sessionCookie.value, "base64").toString());
-  } catch {
-    return null;
-  }
-}
-
 /**
- * GET /api/preferences/[key]
- * Returns a specific preference for the authenticated user
+ * @swagger
+ * /api/preferences/{key}:
+ *   get:
+ *     tags: [Preferences]
+ *     summary: Get a specific preference for the current user
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema: { type: string, example: theme }
+ *     responses:
+ *       200: { description: The preference value }
+ *       401: { description: Not authenticated }
+ *       404: { description: Preference not found }
  */
 export async function GET(request: NextRequest, context: RouteContext) {
-  const user = getUserFromSession(request);
+  const user = getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -59,12 +55,33 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 /**
- * PUT /api/preferences/[key]
- * Update a specific preference for the authenticated user
- * Body: { value: string }
+ * @swagger
+ * /api/preferences/{key}:
+ *   put:
+ *     tags: [Preferences]
+ *     summary: Update a specific preference for the current user
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema: { type: string, example: theme }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [value]
+ *             properties:
+ *               value: { type: string, example: dark }
+ *     responses:
+ *       200: { description: Preference updated }
+ *       400: { description: Missing or invalid value }
+ *       401: { description: Not authenticated }
+ *       500: { description: Failed to update preference }
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const user = getUserFromSession(request);
+  const user = getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -111,11 +128,23 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 }
 
 /**
- * DELETE /api/preferences/[key]
- * Delete a specific preference for the authenticated user
+ * @swagger
+ * /api/preferences/{key}:
+ *   delete:
+ *     tags: [Preferences]
+ *     summary: Delete a specific preference for the current user
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema: { type: string, example: theme }
+ *     responses:
+ *       200: { description: Preference deleted }
+ *       401: { description: Not authenticated }
+ *       404: { description: Preference not found }
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
-  const user = getUserFromSession(request);
+  const user = getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

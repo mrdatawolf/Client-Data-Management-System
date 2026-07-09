@@ -7,6 +7,8 @@ const execFileAsync = promisify(execFile);
 const resolve4 = promisify(dns.resolve4);
 const reverse = promisify(dns.reverse);
 
+const IS_WINDOWS = process.platform === "win32";
+
 // Strict domain validation: only alphanumeric, dots, hyphens, max 253 chars
 const DOMAIN_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
@@ -55,8 +57,40 @@ function extractNsDomain(nameServers: string[]): string {
 }
 
 /**
- * GET /api/whois?action=check
- * GET /api/whois?action=lookup&domain=example.com
+ * @swagger
+ * /api/whois:
+ *   get:
+ *     tags: [Tools]
+ *     summary: Check whois availability or look up a domain
+ *     description: >
+ *       `action=check` reports whether a whois client is installed on the server.
+ *       `action=lookup` runs whois + DNS lookups for a domain and returns registrar,
+ *       name servers, and hosting provider information.
+ *     parameters:
+ *       - name: action
+ *         in: query
+ *         required: true
+ *         schema: { type: string, enum: [check, lookup] }
+ *       - name: domain
+ *         in: query
+ *         schema: { type: string, example: example.com }
+ *         description: Required when action=lookup
+ *     responses:
+ *       200:
+ *         description: Check result (`available`) or lookup result (registrar/DNS fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available: { type: boolean, description: Only for action=check }
+ *                 registrar: { type: string }
+ *                 dnsHost: { type: string }
+ *                 nameServers: { type: array, items: { type: string } }
+ *                 websiteHost: { type: string }
+ *                 websiteIP: { type: string }
+ *       400: { description: Invalid action, missing domain, or invalid domain name }
+ *       401: { description: Not authenticated }
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -74,7 +108,7 @@ export async function GET(request: NextRequest) {
 
 async function handleCheck(): Promise<NextResponse> {
   try {
-    await execFileAsync("where", ["whois"]);
+    await execFileAsync(IS_WINDOWS ? "where" : "which", ["whois"]);
     return NextResponse.json({ available: true });
   } catch {
     return NextResponse.json({ available: false });
@@ -107,9 +141,10 @@ async function handleLookup(domain: string | null): Promise<NextResponse> {
 
   // Run whois lookup
   try {
-    // Sysinternals whois requires accepting EULA; -v suppresses banner, -nobanner if available
-    // Using -accepteula to auto-accept the EULA on first run
-    const { stdout } = await execFileAsync("whois", ["-v", "-accepteula", domain], {
+    // Windows: Sysinternals whois needs -accepteula (auto-accept EULA) and -v to
+    // suppress the banner. Linux/macOS: the standard whois client takes just the domain.
+    const whoisArgs = IS_WINDOWS ? ["-v", "-accepteula", domain] : [domain];
+    const { stdout } = await execFileAsync("whois", whoisArgs, {
       timeout: 15000,
     });
 

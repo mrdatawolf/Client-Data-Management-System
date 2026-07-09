@@ -12,7 +12,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { createClient } from "@libsql/client";
+import Database from "better-sqlite3";
 
 const DB_PATH = process.env.MISC_DB_PATH || "./data/misc.db";
 const DB_DIR = path.dirname(DB_PATH);
@@ -41,14 +41,12 @@ async function migrateMiscFiles() {
     process.exit(1);
   }
 
-  // Create database client
-  const db = createClient({
-    url: `file:${DB_PATH}`,
-  });
+  // Open database
+  const db = new Database(DB_PATH);
 
   // Create misc_documents table if it doesn't exist
   console.log("🔨 Creating misc_documents table...");
-  await db.execute(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS misc_documents (
       client TEXT PRIMARY KEY,
       file_name TEXT NOT NULL,
@@ -84,23 +82,23 @@ async function migrateMiscFiles() {
       const fileData = fs.readFileSync(filePath);
       const stats = fs.statSync(filePath);
 
-      // Convert to base64 for storage (SQLite doesn't have native BLOB support in @libsql/client)
+      // Convert to base64 for storage (kept for compatibility with rows
+      // written by the previous @libsql/client version of this script)
       const fileDataBase64 = fileData.toString("base64");
 
       // Insert into database
-      await db.execute({
-        sql: `INSERT OR REPLACE INTO misc_documents
-              (client, file_name, file_data, file_size, last_modified, uploaded_at)
-              VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [
-          client,
-          fileName,
-          fileDataBase64,
-          stats.size,
-          stats.mtime.toISOString(),
-          new Date().toISOString(),
-        ],
-      });
+      db.prepare(
+        `INSERT OR REPLACE INTO misc_documents
+         (client, file_name, file_data, file_size, last_modified, uploaded_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        client,
+        fileName,
+        fileDataBase64,
+        stats.size,
+        stats.mtime.toISOString(),
+        new Date().toISOString()
+      );
 
       console.log(`✓ ${fileName} → ${client} (${(stats.size / 1024).toFixed(2)} KB)`);
       successCount++;
@@ -127,8 +125,9 @@ async function migrateMiscFiles() {
   }
 
   // Verify data
-  const result = await db.execute("SELECT COUNT(*) as count FROM misc_documents");
-  const count = result.rows[0].count;
+  const { count } = db
+    .prepare("SELECT COUNT(*) as count FROM misc_documents")
+    .get() as { count: number };
   console.log(`\n✓ Database contains ${count} misc documents`);
 
   console.log("\n🎉 Migration complete!");

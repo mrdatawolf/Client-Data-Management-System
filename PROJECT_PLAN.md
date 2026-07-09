@@ -250,7 +250,6 @@ AUTH_DB_PATH=./data/auth.db
 
 # Application
 NEXT_PUBLIC_APP_NAME=Client Data Management System
-NEXT_PUBLIC_ENABLE_EDITING=false  # Set to true for Phase 2
 
 # Cache Settings
 EXCEL_CACHE_TTL=300000  # 5 minutes in milliseconds

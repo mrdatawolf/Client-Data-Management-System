@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
 
 /**
- * Runtime configuration endpoint
- * Returns server-side config that can be checked at runtime
+ * @swagger
+ * /api/config:
+ *   get:
+ *     tags: [System]
+ *     summary: Get runtime configuration
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Public runtime configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authDisabled: { type: boolean, description: True when DISABLE_AUTH=true on the server }
+ *                 appName: { type: string }
  */
 export async function GET() {
   return NextResponse.json({
