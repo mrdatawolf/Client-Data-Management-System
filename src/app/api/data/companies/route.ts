@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addExcelRow, updateExcelRow, ensureExcelFileExists, readExcelFile } from "@/lib/excel/reader";
 
+/**
+ * @swagger
+ * /api/data/companies:
+ *   get:
+ *     tags: [Data]
+ *     summary: Get a company by abbreviation
+ *     parameters:
+ *       - name: abbrv
+ *         in: query
+ *         required: true
+ *         schema: { type: string }
+ *         description: Company abbreviation (the Abbrv column)
+ *     responses:
+ *       200:
+ *         description: The matching company row
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 company: { $ref: '#/components/schemas/Company' }
+ *       400: { description: Missing abbrv }
+ *       401: { description: Not authenticated }
+ *       404: { description: Company not found }
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -24,6 +49,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/data/companies:
+ *   post:
+ *     tags: [Data]
+ *     summary: Add or update a company
+ *     description: Writes to companies.xlsx. Use `action` "add" (rejects duplicate Abbrv) or "update" (requires `rowIdentifier.Abbrv` to locate the row).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [action, rowData]
+ *             properties:
+ *               action: { type: string, enum: [add, update] }
+ *               rowData: { $ref: '#/components/schemas/Company' }
+ *               rowIdentifier:
+ *                 type: object
+ *                 description: Required for update — identifies the existing row
+ *                 properties:
+ *                   Abbrv: { type: string }
+ *     responses:
+ *       200: { description: Saved }
+ *       400: { description: Missing rowData / identifier, or invalid action }
+ *       401: { description: Not authenticated }
+ *       409: { description: A company with this abbreviation already exists }
+ *       500: { description: Failed to save company }
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

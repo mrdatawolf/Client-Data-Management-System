@@ -6,30 +6,30 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAllPreferences, setPreference } from "@/lib/preferences/db";
-
-// Helper to get user from session cookie
-function getUserFromSession(request: NextRequest): { id: string; username: string; role: string } | null {
-  // Check if auth is disabled
-  if (process.env.DISABLE_AUTH === "true") {
-    return { id: "guest", username: "guest", role: "admin" };
-  }
-
-  const sessionCookie = request.cookies.get("session");
-  if (!sessionCookie?.value) return null;
-
-  try {
-    return JSON.parse(Buffer.from(sessionCookie.value, "base64").toString());
-  } catch {
-    return null;
-  }
-}
+import { getSessionUser } from "@/lib/auth/session";
 
 /**
- * GET /api/preferences
- * Returns all preferences for the authenticated user
+ * @swagger
+ * /api/preferences:
+ *   get:
+ *     tags: [Preferences]
+ *     summary: Get all preferences for the current user
+ *     responses:
+ *       200:
+ *         description: Map of preference keys to values
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   additionalProperties: { type: string }
+ *                   example: { theme: dark }
+ *       401: { description: Not authenticated }
  */
 export async function GET(request: NextRequest) {
-  const user = getUserFromSession(request);
+  const user = getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -43,12 +43,29 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/preferences
- * Set a preference for the authenticated user
- * Body: { key: string, value: string }
+ * @swagger
+ * /api/preferences:
+ *   post:
+ *     tags: [Preferences]
+ *     summary: Set a preference for the current user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [key, value]
+ *             properties:
+ *               key: { type: string, example: theme }
+ *               value: { type: string, example: dark }
+ *     responses:
+ *       200:
+ *         description: Accepted. `serverSaved` is false when the value could not be persisted server-side (client falls back to localStorage).
+ *       400: { description: Missing or invalid key/value }
+ *       401: { description: Not authenticated }
  */
 export async function POST(request: NextRequest) {
-  const user = getUserFromSession(request);
+  const user = getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

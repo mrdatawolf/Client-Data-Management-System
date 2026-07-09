@@ -1,9 +1,10 @@
 /**
- * SQLite-based authentication database using @libsql/client
- * With fallback for environments where the module isn't available
+ * SQLite-based authentication database using better-sqlite3
+ * With graceful degradation for environments where the module isn't available
  */
 
 import bcrypt from "bcryptjs";
+import { getDb } from "../db/sqlite";
 
 interface User {
   id: string;
@@ -15,95 +16,69 @@ interface User {
   updatedAt: string;
 }
 
-const DB_PATH = process.env.AUTH_DB_PATH || "./data/auth.db";
-
-// Flag to track if database is available
-let dbAvailable: boolean | null = null;
-let dbClient: any = null;
-
 /**
- * Get database client with dynamic import
- * Returns null if @libsql/client is not available
+ * Break-glass admin from the environment.
+ * When FALLBACK_ADMIN_USERNAME and FALLBACK_ADMIN_PASSWORD are set in .env,
+ * this account can ALWAYS log in with full admin access — even if the
+ * database is unavailable or its users table is broken. Leave the variables
+ * unset to disable it entirely.
  */
-async function getDatabase(): Promise<any | null> {
-  // If we already know the database is unavailable, return null immediately
-  if (dbAvailable === false) {
+const BREAK_GLASS_ID = "fallback-admin-001";
+
+let breakGlassAdmin: User | null | undefined;
+
+function getBreakGlassAdmin(): User | null {
+  if (breakGlassAdmin !== undefined) {
+    return breakGlassAdmin;
+  }
+
+  const username = process.env.FALLBACK_ADMIN_USERNAME;
+  const password = process.env.FALLBACK_ADMIN_PASSWORD;
+
+  if (!username || !password) {
+    breakGlassAdmin = null;
     return null;
   }
 
-  // If we have a cached client, return it
-  if (dbClient) {
-    return dbClient;
-  }
-
-  try {
-    // Dynamic import to avoid build-time module resolution issues
-    const { createClient } = await import("@libsql/client");
-    dbClient = createClient({
-      url: `file:${DB_PATH}`,
-    });
-    dbAvailable = true;
-    return dbClient;
-  } catch (error) {
-    console.warn("@libsql/client not available, using fallback authentication");
-    dbAvailable = false;
-    return null;
-  }
+  const now = new Date().toISOString();
+  breakGlassAdmin = {
+    id: BREAK_GLASS_ID,
+    username,
+    password: bcrypt.hashSync(password, 10),
+    email: null,
+    role: "admin",
+    createdAt: now,
+    updatedAt: now,
+  };
+  return breakGlassAdmin;
 }
-
-/**
- * Default admin user for fallback when database is unavailable
- */
-const FALLBACK_ADMIN: User = {
-  id: "fallback-admin-001",
-  username: "admin",
-  // bcrypt hash of "admin123"
-  password: "$2b$10$vGTuWeZolwBLnQcZNdjkiu8lNmeTUOnNV8Ci89dImxU9tiBOE1aBG",
-  email: null,
-  role: "admin",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
 
 /**
  * Find a user by username
  */
 export async function findUserByUsername(username: string): Promise<User | null> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
-    // Fallback: return default admin if database unavailable
-    if (!db) {
-      if (username === FALLBACK_ADMIN.username) {
-        return FALLBACK_ADMIN;
+    if (db) {
+      const row = db
+        .prepare("SELECT * FROM users WHERE username = ?")
+        .get(username) as User | undefined;
+      if (row) {
+        return row;
       }
-      return null;
     }
 
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE username = ?",
-      args: [username],
-    });
-
-    if (result.rows.length === 0) {
-      return null;
+    const admin = getBreakGlassAdmin();
+    if (admin && username === admin.username) {
+      return admin;
     }
-
-    const row = result.rows[0];
-    return {
-      id: row.id as string,
-      username: row.username as string,
-      password: row.password as string,
-      email: row.email as string | null,
-      role: row.role as string,
-      createdAt: row.createdAt as string,
-      updatedAt: row.updatedAt as string,
-    };
+    return null;
   } catch (error) {
     console.error("Error reading user database:", error);
-    // Fallback on error
-    if (username === FALLBACK_ADMIN.username) {
-      return FALLBACK_ADMIN;
+    const admin = getBreakGlassAdmin();
+    if (admin && username === admin.username) {
+      return admin;
     }
     return null;
   }
@@ -113,41 +88,23 @@ export async function findUserByUsername(username: string): Promise<User | null>
  * Find a user by ID
  */
 export async function findUserById(id: string): Promise<User | null> {
+  const admin = getBreakGlassAdmin();
+  if (admin && id === admin.id) {
+    return admin;
+  }
+
   try {
-    const db = await getDatabase();
-
-    // Fallback: return default admin if database unavailable
+    const db = await getDb();
     if (!db) {
-      if (id === FALLBACK_ADMIN.id) {
-        return FALLBACK_ADMIN;
-      }
       return null;
     }
 
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE id = ?",
-      args: [id],
-    });
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const row = result.rows[0];
-    return {
-      id: row.id as string,
-      username: row.username as string,
-      password: row.password as string,
-      email: row.email as string | null,
-      role: row.role as string,
-      createdAt: row.createdAt as string,
-      updatedAt: row.updatedAt as string,
-    };
+    const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
+      | User
+      | undefined;
+    return row ?? null;
   } catch (error) {
     console.error("Error reading user database:", error);
-    if (id === FALLBACK_ADMIN.id) {
-      return FALLBACK_ADMIN;
-    }
     return null;
   }
 }
@@ -159,6 +116,18 @@ export async function verifyPassword(
   username: string,
   password: string
 ): Promise<Omit<User, "password"> | null> {
+  // Break-glass admin always works when configured, regardless of DB state
+  const admin = getBreakGlassAdmin();
+  if (
+    admin &&
+    username === admin.username &&
+    (await bcrypt.compare(password, admin.password))
+  ) {
+    console.warn("Break-glass admin from .env logged in");
+    const { password: _, ...adminWithoutPassword } = admin;
+    return adminWithoutPassword;
+  }
+
   const user = await findUserByUsername(username);
 
   if (!user) {
@@ -185,19 +154,18 @@ export async function createUser(
   email?: string,
   role: string = "user"
 ): Promise<Omit<User, "password">> {
-  const db = await getDatabase();
+  const db = await getDb();
 
   if (!db) {
-    throw new Error("Database not available - cannot create users in fallback mode");
+    throw new Error("Database not available - cannot create users");
   }
 
   // Check if username already exists
-  const existingResult = await db.execute({
-    sql: "SELECT id FROM users WHERE username = ?",
-    args: [username],
-  });
+  const existing = db
+    .prepare("SELECT id FROM users WHERE username = ?")
+    .get(username);
 
-  if (existingResult.rows.length > 0) {
+  if (existing) {
     throw new Error("Username already exists");
   }
 
@@ -208,10 +176,9 @@ export async function createUser(
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await db.execute({
-    sql: "INSERT INTO users (id, username, password, email, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    args: [id, username, hashedPassword, email || null, role, now, now],
-  });
+  db.prepare(
+    "INSERT INTO users (id, username, password, email, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, username, hashedPassword, email || null, role, now, now);
 
   return {
     id,
@@ -230,63 +197,56 @@ export async function updateUserPassword(
   userId: string,
   newPassword: string
 ): Promise<boolean> {
-  const db = await getDatabase();
+  const db = await getDb();
 
   if (!db) {
-    throw new Error("Database not available - cannot update password in fallback mode");
+    throw new Error("Database not available - cannot update password");
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   const now = new Date().toISOString();
 
-  const result = await db.execute({
-    sql: "UPDATE users SET password = ?, updatedAt = ? WHERE id = ?",
-    args: [hashedPassword, now, userId],
-  });
+  const result = db
+    .prepare("UPDATE users SET password = ?, updatedAt = ? WHERE id = ?")
+    .run(hashedPassword, now, userId);
 
-  return result.rowsAffected > 0;
+  return result.changes > 0;
 }
 
 /**
  * Delete a user
  */
 export async function deleteUser(userId: string): Promise<boolean> {
-  const db = await getDatabase();
+  const db = await getDb();
 
   if (!db) {
-    throw new Error("Database not available - cannot delete users in fallback mode");
+    throw new Error("Database not available - cannot delete users");
   }
 
-  const result = await db.execute({
-    sql: "DELETE FROM users WHERE id = ?",
-    args: [userId],
-  });
+  const result = db.prepare("DELETE FROM users WHERE id = ?").run(userId);
 
-  return result.rowsAffected > 0;
+  return result.changes > 0;
 }
 
 /**
  * List all users (without passwords)
  */
 export async function listUsers(): Promise<Omit<User, "password">[]> {
-  const db = await getDatabase();
+  const db = await getDb();
 
   if (!db) {
-    // Return fallback admin in list
-    const { password: _, ...adminWithoutPassword } = FALLBACK_ADMIN;
+    // No database — only the break-glass admin exists, if configured
+    const admin = getBreakGlassAdmin();
+    if (!admin) return [];
+    const { password: _, ...adminWithoutPassword } = admin;
     return [adminWithoutPassword];
   }
 
-  const result = await db.execute(
-    "SELECT id, username, email, role, createdAt, updatedAt FROM users"
-  );
+  const rows = db
+    .prepare(
+      "SELECT id, username, email, role, createdAt, updatedAt FROM users ORDER BY username"
+    )
+    .all() as Omit<User, "password">[];
 
-  return result.rows.map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    username: row.username as string,
-    email: row.email as string | null,
-    role: row.role as string,
-    createdAt: row.createdAt as string,
-    updatedAt: row.updatedAt as string,
-  }));
+  return rows;
 }

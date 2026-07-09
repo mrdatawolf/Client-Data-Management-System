@@ -68,23 +68,18 @@ if (!fs.existsSync(distDir)) {
 console.log('Copying standalone server...');
 copyDir(standaloneDir, distDir, EXCLUDE_FOLDERS);
 
-// Copy @libsql/client to standalone node_modules (it's marked as external in next.config.js)
-console.log('Copying @libsql/client for SQLite support...');
-const libsqlSrcDir = path.join(__dirname, '..', 'node_modules', '@libsql');
-const libsqlDestDir = path.join(distDir, 'node_modules', '@libsql');
-if (fs.existsSync(libsqlSrcDir)) {
-  copyDir(libsqlSrcDir, libsqlDestDir);
-  console.log('  @libsql/client copied successfully');
-} else {
-  console.warn('  Warning: @libsql/client not found in node_modules');
-}
-
-// Also copy libsql (the native binding dependency)
-const libsqlNativeSrcDir = path.join(__dirname, '..', 'node_modules', 'libsql');
-const libsqlNativeDestDir = path.join(distDir, 'node_modules', 'libsql');
-if (fs.existsSync(libsqlNativeSrcDir)) {
-  copyDir(libsqlNativeSrcDir, libsqlNativeDestDir);
-  console.log('  libsql native bindings copied successfully');
+// Copy better-sqlite3 (and its runtime deps) to standalone node_modules
+// (it's marked as external in next.config.js)
+console.log('Copying better-sqlite3 for SQLite support...');
+for (const pkg of ['better-sqlite3', 'bindings', 'file-uri-to-path']) {
+  const srcDir = path.join(__dirname, '..', 'node_modules', pkg);
+  const destDir = path.join(distDir, 'node_modules', pkg);
+  if (fs.existsSync(srcDir)) {
+    copyDir(srcDir, destDir);
+    console.log(`  ${pkg} copied successfully`);
+  } else {
+    console.warn(`  Warning: ${pkg} not found in node_modules`);
+  }
 }
 
 // Copy static files
@@ -233,10 +228,6 @@ echo.
 echo Starting server on port 6030...
 echo Open your browser to: http://localhost:6030
 echo.
-echo Default login:
-echo   Username: admin
-echo   Password: admin123
-echo.
 echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
@@ -282,13 +273,6 @@ This directory contains a standalone version of the Client Data Management appli
 \`\`\`
 node server.js
 \`\`\`
-
-## Default Login
-
-- Username: admin
-- Password: admin123
-
-**IMPORTANT:** Change the default password after first login!
 
 ## Configuration
 

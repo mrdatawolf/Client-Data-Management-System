@@ -56,6 +56,21 @@ This comprehensive document includes:
 - Security considerations
 - Testing strategy
 
+## API Documentation
+
+Interactive API docs (Swagger UI) are served by the app itself at **`/docs`**,
+behind the normal login. The OpenAPI spec is available at `/openapi.json`.
+
+Docs are generated from `@swagger` JSDoc annotations in each
+`src/app/api/**/route.ts` file — when you add or change an endpoint, update the
+annotation above the handler. Regenerate manually with:
+
+```bash
+npm run docs:generate
+```
+
+(`npm run build` runs this automatically.)
+
 ## Project Structure
 
 ```
@@ -116,7 +131,6 @@ Key environment variables (see `.env.example`):
 - `EXCEL_BASE_PATH` - Path to main Excel files
 - `COMPANIES_FILE_PATH` - Path to companies master file
 - `JWT_SECRET` - Secret for JWT authentication
-- `NEXT_PUBLIC_ENABLE_EDITING` - Enable/disable editing features
 
 ## Sample Data
 

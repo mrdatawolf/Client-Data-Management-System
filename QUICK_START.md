@@ -39,7 +39,6 @@ COMPANIES_FILE_PATH=./Examples/companies.xlsx
 # COMPANIES_FILE_PATH=S:/PBIData/Biztech/companies.xlsx
 
 JWT_SECRET=your-dev-secret-change-for-production
-NEXT_PUBLIC_ENABLE_EDITING=false
 ```
 
 ### 3. Initialize Database
@@ -47,9 +46,10 @@ NEXT_PUBLIC_ENABLE_EDITING=false
 npm run auth:init
 ```
 
-This creates the auth database with a default user:
-- **Username:** admin
-- **Password:** admin123 (change this!)
+This creates the auth database (no default users). Create your first admin:
+```bash
+npm run users -- add <username> --role admin
+```
 
 ### 4. Start Development Server
 ```bash
@@ -61,7 +61,7 @@ Open [http://localhost:6029](http://localhost:6029)
 ## What You'll See
 
 After starting the dev server, you should see:
-1. **Login page** - Use admin/admin123
+1. **Login page** - Sign in with the user you created
 2. **Dashboard** - Overview of client data
 3. **Navigation** - Links to different data views
 
@@ -288,7 +288,6 @@ When ready to deploy:
 EXCEL_BASE_PATH=S:/PBIData/NetDoc/Manual
 COMPANIES_FILE_PATH=S:/PBIData/Biztech/companies.xlsx
 JWT_SECRET=<generate-secure-random-string>
-NEXT_PUBLIC_ENABLE_EDITING=true  # For Phase 2
 ```
 
 2. **Build**

@@ -5,7 +5,7 @@ const nextConfig = {
   output: 'standalone',
 
   // Externalize packages with native bindings that don't bundle well
-  serverExternalPackages: ['@libsql/client'],
+  serverExternalPackages: ['better-sqlite3'],
 
   // Exclude large directories from standalone build to prevent size bloat
   outputFileTracingExcludes: {

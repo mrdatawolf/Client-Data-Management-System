@@ -1,7 +1,10 @@
 /**
  * SQLite-based user preferences database operations
- * With fallback for environments where @libsql/client isn't available
+ * With graceful degradation for environments where better-sqlite3 isn't available
+ * (the client falls back to localStorage)
  */
+
+import { getDb } from "../db/sqlite";
 
 export interface UserPreference {
   id: string;
@@ -12,42 +15,6 @@ export interface UserPreference {
   updatedAt: string;
 }
 
-const DB_PATH = process.env.AUTH_DB_PATH || "./data/auth.db";
-
-// Flag to track if database is available
-let dbAvailable: boolean | null = null;
-let dbClient: any = null;
-
-/**
- * Get database client with dynamic import
- * Returns null if @libsql/client is not available
- */
-async function getDatabase(): Promise<any | null> {
-  // If we already know the database is unavailable, return null immediately
-  if (dbAvailable === false) {
-    return null;
-  }
-
-  // If we have a cached client, return it
-  if (dbClient) {
-    return dbClient;
-  }
-
-  try {
-    // Dynamic import to avoid build-time module resolution issues
-    const { createClient } = await import("@libsql/client");
-    dbClient = createClient({
-      url: `file:${DB_PATH}`,
-    });
-    dbAvailable = true;
-    return dbClient;
-  } catch (error) {
-    console.warn("@libsql/client not available for preferences, using localStorage fallback on client");
-    dbAvailable = false;
-    return null;
-  }
-}
-
 /**
  * Get a specific preference for a user
  */
@@ -56,23 +23,18 @@ export async function getPreference(
   key: string
 ): Promise<string | null> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
     if (!db) {
       // Return null - client will fall back to localStorage
       return null;
     }
 
-    const result = await db.execute({
-      sql: "SELECT value FROM user_preferences WHERE userId = ? AND key = ?",
-      args: [userId, key],
-    });
+    const row = db
+      .prepare("SELECT value FROM user_preferences WHERE userId = ? AND key = ?")
+      .get(userId, key) as { value: string } | undefined;
 
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    return result.rows[0].value as string;
+    return row?.value ?? null;
   } catch (error) {
     console.error("Error reading preference:", error);
     return null;
@@ -88,42 +50,26 @@ export async function setPreference(
   value: string
 ): Promise<boolean> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
     if (!db) {
       // Return false - client will fall back to localStorage
       return false;
     }
 
+    const crypto = await import("crypto");
     const now = new Date().toISOString();
 
-    // Check if preference exists
-    const existing = await db.execute({
-      sql: "SELECT id FROM user_preferences WHERE userId = ? AND key = ?",
-      args: [userId, key],
-    });
-
-    if (existing.rows.length > 0) {
-      // Update existing
-      await db.execute({
-        sql: "UPDATE user_preferences SET value = ?, updatedAt = ? WHERE userId = ? AND key = ?",
-        args: [value, now, userId, key],
-      });
-    } else {
-      // Insert new
-      const crypto = await import("crypto");
-      const id = crypto.randomUUID();
-
-      await db.execute({
-        sql: "INSERT INTO user_preferences (id, userId, key, value, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
-        args: [id, userId, key, value, now, now],
-      });
-    }
+    db.prepare(
+      `INSERT INTO user_preferences (id, userId, key, value, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(userId, key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt`
+    ).run(crypto.randomUUID(), userId, key, value, now, now);
 
     return true;
   } catch (error: any) {
     // Silently handle foreign key constraint errors (user doesn't exist in DB)
-    // This happens with fallback auth or DISABLE_AUTH=true - client will use localStorage
+    // This happens with break-glass auth or DISABLE_AUTH=true - client will use localStorage
     if (error?.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
       return false;
     }
@@ -139,21 +85,20 @@ export async function getAllPreferences(
   userId: string
 ): Promise<Record<string, string>> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
     if (!db) {
       // Return empty - client will fall back to localStorage
       return {};
     }
 
-    const result = await db.execute({
-      sql: "SELECT key, value FROM user_preferences WHERE userId = ?",
-      args: [userId],
-    });
+    const rows = db
+      .prepare("SELECT key, value FROM user_preferences WHERE userId = ?")
+      .all(userId) as { key: string; value: string }[];
 
     const preferences: Record<string, string> = {};
-    for (const row of result.rows) {
-      preferences[row.key as string] = row.value as string;
+    for (const row of rows) {
+      preferences[row.key] = row.value;
     }
 
     return preferences;
@@ -171,18 +116,17 @@ export async function deletePreference(
   key: string
 ): Promise<boolean> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
     if (!db) {
       return false;
     }
 
-    const result = await db.execute({
-      sql: "DELETE FROM user_preferences WHERE userId = ? AND key = ?",
-      args: [userId, key],
-    });
+    const result = db
+      .prepare("DELETE FROM user_preferences WHERE userId = ? AND key = ?")
+      .run(userId, key);
 
-    return result.rowsAffected > 0;
+    return result.changes > 0;
   } catch (error) {
     console.error("Error deleting preference:", error);
     return false;
@@ -194,16 +138,13 @@ export async function deletePreference(
  */
 export async function deleteAllPreferences(userId: string): Promise<boolean> {
   try {
-    const db = await getDatabase();
+    const db = await getDb();
 
     if (!db) {
       return false;
     }
 
-    await db.execute({
-      sql: "DELETE FROM user_preferences WHERE userId = ?",
-      args: [userId],
-    });
+    db.prepare("DELETE FROM user_preferences WHERE userId = ?").run(userId);
 
     return true;
   } catch (error) {

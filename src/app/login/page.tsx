@@ -62,7 +62,7 @@ export default function LoginPage() {
             <input
               id="username"
               type="text"
-              placeholder="admin"
+              placeholder="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -101,13 +101,6 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Sign In"}
           </button>
         </form>
-
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>Default credentials:</p>
-          <p className="font-mono text-xs mt-1 text-gray-600 dark:text-gray-300">
-            admin / admin123
-          </p>
-        </div>
       </div>
     </div>
   );
