@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<any>(null);
+  const [appVersion, setAppVersion] = useState<string>("");
   const [selectedClient, setSelectedClient] = useState("");
   const [clients, setClients] = useState<Array<{value: string, label: string, group?: string}>>([]);
   const [loading, setLoading] = useState(true);
@@ -694,6 +695,7 @@ export default function DashboardPage() {
         // Check if auth is disabled via server config
         const configRes = await fetch("/api/config");
         const config = await configRes.json();
+        setAppVersion(config.version || "");
 
         if (config.authDisabled) {
           // Auth disabled - use guest user
@@ -1117,6 +1119,14 @@ export default function DashboardPage() {
                     >
                       Logout
                     </button>
+                    {appVersion && (
+                      <>
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                        <div className="px-3 py-1.5 text-xs text-gray-400 dark:text-gray-500">
+                          Version {appVersion}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </>
               )}
