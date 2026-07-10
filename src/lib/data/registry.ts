@@ -96,16 +96,19 @@ async function checkSqliteSources(): Promise<DataSourceStatus[]> {
   ];
 
   try {
-    const { getDb } = await import("@/lib/db/sqlite");
+    const { getDb, getDbLoadError } = await import("@/lib/db/sqlite");
     const db = await getDb();
     if (!db) {
+      const reason = getDbLoadError();
       return tables.map(({ key, table }) => ({
         key,
         type: "sqlite" as const,
         location,
         container: table,
         ok: false,
-        error: "better-sqlite3 unavailable",
+        error: reason
+          ? `better-sqlite3 failed to load: ${reason}`
+          : "better-sqlite3 unavailable",
       }));
     }
     return tables.map(({ key, table }) => {

@@ -14,7 +14,12 @@ const http = require('http');
 const { execSync } = require('child_process');
 
 // Configuration
-const NODE_VERSION = '20.11.0'; // LTS version
+// Bundle the same Node version that is running this build: native modules
+// (better-sqlite3) were compiled/downloaded for THIS Node's ABI during
+// `npm install`, and a bundled runtime with a different major version
+// refuses to load them. Override with BUNDLED_NODE_VERSION to pin one —
+// but then run the build itself with that same Node version.
+const NODE_VERSION = process.env.BUNDLED_NODE_VERSION || process.version.slice(1);
 const NODE_ARCH = 'win-x64';
 const NODE_FILENAME = `node-v${NODE_VERSION}-${NODE_ARCH}`;
 const NODE_URL = `https://nodejs.org/dist/v${NODE_VERSION}/${NODE_FILENAME}.zip`;

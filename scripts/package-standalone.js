@@ -68,9 +68,32 @@ if (!fs.existsSync(distDir)) {
 console.log('Copying standalone server...');
 copyDir(standaloneDir, distDir, EXCLUDE_FOLDERS);
 
+// Stamp the build so a deployed dist-server can always be identified
+fs.writeFileSync(
+  path.join(distDir, 'BUILD_INFO.json'),
+  JSON.stringify(
+    {
+      version,
+      builtOn: `${process.platform}-${process.arch}`,
+      node: process.version,
+      builtAt: new Date().toISOString(),
+      note: 'Native modules (better-sqlite3) only work on hosts matching builtOn.',
+    },
+    null,
+    2
+  )
+);
+
 // Copy better-sqlite3 (and its runtime deps) to standalone node_modules
 // (it's marked as external in next.config.js)
+//
+// IMPORTANT: better-sqlite3 is a native module — its compiled binary only
+// runs on the OS/arch it was installed on. A dist-server packaged on Linux
+// will NOT have a working database on Windows (and vice versa). Build the
+// Windows deliverables on the Windows server.
 console.log('Copying better-sqlite3 for SQLite support...');
+console.log(`  NOTE: packaging on ${process.platform}-${process.arch} — this dist-server's`);
+console.log(`  database (better-sqlite3) will only work on ${process.platform}-${process.arch} hosts.`);
 for (const pkg of ['better-sqlite3', 'bindings', 'file-uri-to-path']) {
   const srcDir = path.join(__dirname, '..', 'node_modules', pkg);
   const destDir = path.join(distDir, 'node_modules', pkg);

@@ -37,6 +37,12 @@ const SCHEMA = `
 
 let db: BetterSqlite3.Database | null = null;
 let dbAvailable: boolean | null = null;
+let dbLoadError: string | null = null;
+
+/** Why the database failed to load, if it did (for diagnostics/health). */
+export function getDbLoadError(): string | null {
+  return dbLoadError;
+}
 
 /**
  * Get the shared database handle, opening it (and creating the schema)
@@ -62,10 +68,8 @@ export async function getDb(): Promise<BetterSqlite3.Database | null> {
     dbAvailable = true;
     return db;
   } catch (error) {
-    console.warn(
-      "better-sqlite3 not available — database disabled:",
-      error instanceof Error ? error.message : error
-    );
+    dbLoadError = error instanceof Error ? error.message : String(error);
+    console.warn("better-sqlite3 not available — database disabled:", dbLoadError);
     dbAvailable = false;
     return null;
   }
