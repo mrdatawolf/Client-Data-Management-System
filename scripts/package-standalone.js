@@ -381,10 +381,23 @@ function copyDir(src, dest, excludeFolders = []) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 
-    // Skip symbolic links (junctions on Windows)
-    // The real static files are copied separately, so we skip symlinks to avoid EPERM errors
+    // Materialize symbolic links (junctions on Windows) as real copies.
+    // Turbopack's standalone output aliases serverExternalPackages through
+    // symlinks (e.g. .next/node_modules/better-sqlite3-<hash> -> better-sqlite3);
+    // skipping them ships a build whose externals cannot resolve. Copying the
+    // resolved content creates no symlinks, so no EPERM risk on Windows.
     if (entry.isSymbolicLink()) {
-      console.log(`  Skipping symlink: ${entry.name}`);
+      try {
+        const target = fs.realpathSync(srcPath);
+        if (fs.statSync(target).isDirectory()) {
+          console.log(`  Materializing symlinked folder: ${entry.name}`);
+          copyDir(target, destPath, excludeFolders);
+        } else {
+          fs.copyFileSync(target, destPath);
+        }
+      } catch (err) {
+        console.warn(`  Skipping broken symlink: ${entry.name} (${err.message})`);
+      }
       continue;
     }
 
