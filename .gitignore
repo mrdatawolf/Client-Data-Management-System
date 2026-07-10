@@ -9,8 +9,13 @@ coverage/
 # Next.js
 .next/
 out/
-build/
 dist/
+
+# Electron build resources: ignore generated contents but keep the icons
+# (electron-builder reads build/icon.ico per electron-builder.json)
+/build/*
+!/build/icon.ico
+!/build/icon.png
 
 # Production
 *.standalone/
