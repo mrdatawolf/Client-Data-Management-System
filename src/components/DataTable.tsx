@@ -69,7 +69,6 @@ export function DataTable({
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[0]);
-  const [maskedPasswords, setMaskedPasswords] = useState<Set<string>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
 
   // Expandable rows state
@@ -91,7 +90,9 @@ export function DataTable({
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; columnKey: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedCell, setCopiedCell] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -101,19 +102,12 @@ export function DataTable({
     }
   }, [editingCell]);
 
-  // Toggle password visibility for a specific row
-  const togglePasswordVisibility = (rowIndex: number, columnKey: string) => {
-    const key = `${rowIndex}-${columnKey}`;
-    setMaskedPasswords(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
+  // Clear any pending "Copied" indicator timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
 
   // Filter data based on search and column filters
   const filteredData = useMemo(() => {
@@ -244,6 +238,15 @@ export function DataTable({
 
     setEditingCell({ rowIndex, columnKey });
     setEditValue(currentValue != null ? String(currentValue) : '');
+
+    if (column.type === 'password' && currentValue) {
+      navigator.clipboard.writeText(String(currentValue)).then(() => {
+        const key = `${rowIndex}-${columnKey}`;
+        setCopiedCell(key);
+        if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+        copiedTimeoutRef.current = setTimeout(() => setCopiedCell(null), 1500);
+      }).catch(() => {});
+    }
   };
 
   const handleEditSave = async () => {
@@ -397,9 +400,9 @@ export function DataTable({
                         const value = row[col.key];
                         const isPassword = col.type === 'password';
                         const isCheckbox = col.type === 'checkbox';
-                        const isMasked = maskedPasswords.has(`${rowIndex}-${col.key}`);
                         const isEditingThis = editingCell?.rowIndex === rowIndex && editingCell?.columnKey === col.key;
                         const isCellEditable = isEditable && col.editable !== false;
+                        const isCopiedThis = isPassword && copiedCell === `${rowIndex}-${col.key}`;
 
                         return (
                           <td
@@ -449,20 +452,17 @@ export function DataTable({
                                 {isSaving && (
                                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 animate-pulse">...</span>
                                 )}
+                                {!isSaving && isCopiedThis && (
+                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 text-xs">Copied!</span>
+                                )}
                               </div>
                             ) : isPassword && enablePasswordMasking ? (
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono">
-                                  {isMasked ? value || '-' : '••••••••'}
-                                </span>
-                                <button
-                                  onClick={() => togglePasswordVisibility(rowIndex, col.key)}
-                                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                                  title={isMasked ? 'Hide' : 'Show'}
-                                >
-                                  {isMasked ? '👁️' : '👁️‍🗨️'}
-                                </button>
-                              </div>
+                              <span
+                                className="font-mono"
+                                title={isCellEditable ? 'Double-click to reveal, copy & edit' : undefined}
+                              >
+                                {'•'.repeat(8)}
+                              </span>
                             ) : col.type === 'url' && value ? (
                               <a
                                 href={value}
