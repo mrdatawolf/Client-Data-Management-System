@@ -2027,7 +2027,9 @@ export default function DashboardPage() {
               tableId="domainAD"
               defaultSort={getSortConfig('domainAD')}
               onSortChange={handleSortChange}
-              onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name'])}
+              editable={true}
+              onCellEdit={(row, columnKey, newValue) => handleCellEdit('core', row, columnKey, newValue, ['Client', 'Name', 'IP address'])}
+              onInactivate={(row) => handleInactivate('core', row, ['Client', 'Name', 'IP address'])}
             />
           </div>
         </div>
