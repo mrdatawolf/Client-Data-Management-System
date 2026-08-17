@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addExcelRow, updateExcelRow, ensureExcelFileExists, readExcelFile } from "@/lib/excel/reader";
+import {
+  createMigratedRow,
+  isApiWriteMode,
+  isCompareMode,
+  readMigratedDataset,
+  updateMigratedRow,
+} from "@/lib/data/silver-datasets";
 
 /**
  * @swagger
@@ -35,7 +42,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing abbrv" }, { status: 400 });
     }
 
-    const companies = readExcelFile("companies");
+    const companies = await readMigratedDataset("companies");
     const company = companies.find((c: any) => String(c.Abbrv) === abbrv);
 
     if (!company) {
@@ -79,12 +86,47 @@ export async function GET(request: NextRequest) {
  *       500: { description: Failed to save company }
  */
 export async function POST(request: NextRequest) {
+  if (isCompareMode()) {
+    return NextResponse.json(
+      { error: "Company changes are disabled in compare mode" },
+      { status: 405 },
+    );
+  }
+
   try {
     const body = await request.json();
     const { action, rowData, rowIdentifier } = body;
 
     if (!rowData) {
       return NextResponse.json({ error: "Missing rowData" }, { status: 400 });
+    }
+
+    if (isApiWriteMode()) {
+      if (action === "add") {
+        const existing = (await readMigratedDataset("companies")).some(
+          (company) => String(company.Abbrv).trim().toLowerCase() ===
+            String(rowData.Abbrv).trim().toLowerCase(),
+        );
+        if (existing) {
+          return NextResponse.json(
+            { error: "A company with this abbreviation already exists" },
+            { status: 409 },
+          );
+        }
+        const company = await createMigratedRow("companies", rowData);
+        return NextResponse.json({ success: true, company });
+      }
+
+      if (action === "update") {
+        const apiId = body.apiId;
+        if (!Number.isInteger(apiId) || apiId <= 0) {
+          return NextResponse.json({ error: "Missing company apiId" }, { status: 400 });
+        }
+        const company = await updateMigratedRow("companies", apiId, rowData);
+        return NextResponse.json({ success: true, company });
+      }
+
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
     ensureExcelFileExists("companies", ["Company Name", "Abbrv", "Group", "Status"]);

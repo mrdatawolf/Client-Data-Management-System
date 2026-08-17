@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readExcelFile, filterByClient, filterOutInactive, ensureExcelFileExists } from "@/lib/excel/reader";
+import { ensureExcelFileExists } from "@/lib/excel/reader";
+import { getReadSource, readMigratedDataset } from "@/lib/data/silver-datasets";
 
 const WEBSITE_HEADERS = [
   "Client",
@@ -28,12 +29,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Auto-create the file if it doesn't exist
-    ensureExcelFileExists("websites", WEBSITE_HEADERS);
-
-    const data = readExcelFile("websites");
-    const filtered = filterByClient(data, client);
-    const activeData = filterOutInactive(filtered);
+    // Preserve legacy file creation only when Excel is actually being read.
+    if (getReadSource() !== "api") ensureExcelFileExists("websites", WEBSITE_HEADERS);
+    const activeData = await readMigratedDataset("websites", client);
 
     return NextResponse.json({
       data: activeData,

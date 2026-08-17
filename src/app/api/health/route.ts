@@ -31,7 +31,7 @@ import { version } from "../../../../package.json";
  *                     type: object
  *                     properties:
  *                       key: { type: string, example: core }
- *                       type: { type: string, enum: [excel, sqlite, folder] }
+ *                       type: { type: string, enum: [excel, sqlite, folder, api] }
  *                       location: { type: string, description: Resolved path in use }
  *                       container: { type: string, description: Sheet or table name }
  *                       ok: { type: boolean }

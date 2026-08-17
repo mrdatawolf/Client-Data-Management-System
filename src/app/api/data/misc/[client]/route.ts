@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { getReadSource } from "@/lib/data/silver-datasets";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -112,6 +113,13 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ client: string }> }
 ) {
+  if (getReadSource() !== "excel") {
+    return NextResponse.json(
+      { error: "Misc changes are disabled while CDMS is reading from the data API" },
+      { status: 405 },
+    );
+  }
+
   try {
     const { client } = await context.params;
 

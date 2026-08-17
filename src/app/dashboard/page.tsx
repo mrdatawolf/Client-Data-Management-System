@@ -244,6 +244,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'updateCell',
           fileKey,
+          apiId: row._apiId,
           rowIdentifier,
           columnKey,
           newValue,
@@ -323,6 +324,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'updateCell',
           fileKey,
+          apiId: fileKey === 'workstations' ? row._wsApiId : row._userApiId,
           rowIdentifier,
           columnKey: excelColumnKey,
           newValue,
@@ -383,6 +385,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'updateCell',
           fileKey,
+          apiId: columnKey === 'IntIP' ? row._coreApiId : row._apiId,
           rowIdentifier,
           columnKey: excelColumnKey,
           newValue,
@@ -476,6 +479,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: mode,
+          apiId: mode === 'update' ? companyEditData?._apiId : undefined,
           rowData: data,
           rowIdentifier: mode === 'update' ? { Abbrv: companyEditTarget } : undefined,
         }),
@@ -498,7 +502,7 @@ export default function DashboardPage() {
       console.error('Failed to save company:', error);
       throw error;
     }
-  }, [refreshClients, companyEditTarget]);
+  }, [refreshClients, companyEditTarget, companyEditData]);
 
   // Handle whois autopopulate for websites modal
   const handleWhoisLookup = useCallback(async (): Promise<Record<string, any> | null> => {
@@ -545,6 +549,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'setInactive',
           fileKey,
+          apiId: row._apiId ?? row._wsApiId,
           rowIdentifier,
           inactive: 1,
           ...(inactiveColumn && { inactiveColumn }),
@@ -1498,7 +1503,7 @@ export default function DashboardPage() {
           onSortChange={handleSortChange}
           editable={true}
           onCellEdit={handleWorkstationsUsersEdit}
-          onInactivate={(row) => handleInactivate('workstations', { Client: row._wsClient, 'Computer Name': row._wsComputerName }, ['Client', 'Computer Name'])}
+          onInactivate={(row) => handleInactivate('workstations', { Client: row._wsClient, 'Computer Name': row._wsComputerName, _apiId: row._wsApiId }, ['Client', 'Computer Name'])}
           expandable={true}
           expandedRowRenderer={(row) => (
             <div>
