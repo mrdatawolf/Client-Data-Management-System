@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import { getReadSource } from "@/lib/data/silver-datasets";
+import {
+  archiveMigratedRow,
+  createMigratedRow,
+  getReadSource,
+  readApiDataset,
+  updateMigratedRow,
+} from "@/lib/data/silver-datasets";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -76,6 +82,11 @@ export async function GET(
       );
     }
 
+    if (getReadSource() !== "excel") {
+      const data = await readApiDataset("miscRows", client);
+      return NextResponse.json({ data, count: data.length });
+    }
+
     const filePath = getMiscFilePath(client);
     const result = readMiscData(filePath);
 
@@ -113,9 +124,9 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ client: string }> }
 ) {
-  if (getReadSource() !== "excel") {
+  if (getReadSource() === "compare") {
     return NextResponse.json(
-      { error: "Misc changes are disabled while CDMS is reading from the data API" },
+      { error: "Misc changes are disabled in compare mode" },
       { status: 405 },
     );
   }
@@ -131,13 +142,32 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { action, rowIndex, columnKey, newValue, rowData } = body;
+    const { action, rowIndex, columnKey, newValue, rowData, apiId } = body;
 
     if (!["updateCell", "addRow", "deleteRow"].includes(action)) {
       return NextResponse.json(
         { error: `Invalid action: ${action}` },
         { status: 400 }
       );
+    }
+
+    if (getReadSource() === "api") {
+      if (action === "addRow") {
+        const row = await createMigratedRow("miscRows", { Client: client, ...rowData });
+        return NextResponse.json({ success: true, row });
+      }
+      if (!Number.isInteger(apiId) || apiId <= 0) {
+        return NextResponse.json({ error: `A stable apiId is required for ${action}` }, { status: 400 });
+      }
+      if (action === "updateCell") {
+        if (!MISC_COLUMNS.includes(columnKey)) {
+          return NextResponse.json({ error: `Invalid column: ${columnKey}` }, { status: 400 });
+        }
+        const row = await updateMigratedRow("miscRows", apiId, { [columnKey]: newValue ?? "" });
+        return NextResponse.json({ success: true, row });
+      }
+      await archiveMigratedRow("miscRows", apiId);
+      return NextResponse.json({ success: true });
     }
 
     const filePath = getMiscFilePath(client);

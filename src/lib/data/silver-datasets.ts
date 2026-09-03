@@ -32,7 +32,8 @@ export type MigratedDatasetKey =
   | "acronisBackups"
   | "cloudflareAdmins"
   | "guacamoleHosts"
-  | "companies";
+  | "companies"
+  | "miscRows";
 
 interface DatasetDefinition {
   table: string;
@@ -49,6 +50,7 @@ const FILE_KEY_ALIASES: Record<string, MigratedDatasetKey> = {
   adminEmails: "adminEmails", adminVoipLogins: "adminVoipLogins",
   acronisBackups: "acronisBackups", cloudflareAdmins: "cloudflareAdmins",
   guacamoleHosts: "guacamoleHosts", companies: "companies",
+  miscRows: "miscRows",
 };
 
 export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
@@ -82,15 +84,20 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   domains: {
     table: "domains",
     comparisonKeys: ["Client", "Domain Name"],
-    fields: { client: "Client", domain_name: "Domain Name", alt_domain: "Alt Domain" },
+    numberFields: ["inactive"],
+    fields: {
+      client: "Client", domain_name: "Domain Name", alt_domain: "Alt Domain",
+      inactive: "Inactive",
+    },
   },
   cameras: {
     table: "cameras_external",
     comparisonKeys: ["Client", "Name"],
+    numberFields: ["inactive"],
     fields: {
       client: "Client", name: "Name", vendor: "Vendor", model: "Model", ip: "IP",
       howto_connect: "Howto Connect", login: "Login", password: "Password",
-      notes: "Notes", notes_2: "Notes 2", host_nvr: "Host NVR",
+      notes: "Notes", notes_2: "Notes 2", host_nvr: "Host NVR", inactive: "Inactive",
     },
   },
   emails: {
@@ -108,11 +115,13 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   phoneNumbers: {
     table: "phone_numbers",
     comparisonKeys: ["Client", "Name", "Number"],
-    fields: { client: "Client", name: "Name", number: "Number", other: "Other" },
+    numberFields: ["inactive"],
+    fields: { client: "Client", name: "Name", number: "Number", other: "Other", inactive: "Inactive" },
   },
   websites: {
     table: "websites",
     comparisonKeys: ["Client", "DNS Host", "URL"],
+    numberFields: ["inactive"],
     fields: {
       client: "Client", registrar: "Registrar",
       registrar_credential_location: "Registrar Credential Location",
@@ -121,7 +130,7 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
       dns_username: "DNS Username", dns_password: "DNS Password",
       website_host: "Website Host", website_credential_location: "Website Credential Location",
       website_username: "Website Username", website_password: "Website Password",
-      url: "URL", notes: "Notes",
+      url: "URL", notes: "Notes", inactive: "Inactive",
     },
   },
   devices: {
@@ -139,22 +148,22 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   containers: {
     table: "containers",
     comparisonKeys: ["Client", "Name", "IP"],
-    numberFields: ["port"],
+    numberFields: ["port", "inactive"],
     fields: {
       client: "Client", name: "Name", ip: "IP", port: "Port", grouping: "Grouping",
-      daemon: "Daemon", startup_notes: "Startup Notes",
+      daemon: "Daemon", startup_notes: "Startup Notes", inactive: "Inactive",
     },
   },
   vms: {
     table: "vms",
     comparisonKeys: ["Client", "Name", "Host"],
-    numberFields: ["startup_memory_gb", "active"],
+    numberFields: ["startup_memory_gb", "active", "inactive"],
     fields: {
       client: "Client", location: "Location", name: "Name", ip: "IP", type: "Type",
       host: "Host", startup_memory_gb: "Startup memory (GB)", active: "Active",
       windows_11_issue: "Windows 11 Issue?", needs_w11: "Needs W11",
       assigned_cores: "Assigned cores", assigned_to: "Assigned To", notes: "Notes",
-      grouping: "Grouping", startup_notes: "Startup Notes",
+      grouping: "Grouping", startup_notes: "Startup Notes", inactive: "Inactive",
     },
   },
   daemons: {
@@ -169,12 +178,12 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   managedInfo: {
     table: "managed_info",
     comparisonKeys: ["Client", "Provider", "Account #"],
-    numberFields: ["managed", "active"],
+    numberFields: ["managed", "active", "inactive"],
     fields: {
       client: "Client", provider: "Provider", name: "Name", email: "Email", ip_1: "IP 1",
       ip_2: "IP 2", managed: "Managed", phone_1: "Phone 1", phone_2: "Phone 2",
       phone_3: "Phone 3", phone_4: "Phone 4", account: "Account #", type: "Type",
-      note_1: "Note 1", note_2: "Note 2", active: "Active",
+      note_1: "Note 1", note_2: "Note 2", active: "Active", inactive: "Inactive",
     },
   },
   users: {
@@ -203,7 +212,7 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   externalInfo: {
     table: "external_info",
     comparisonKeys: ["Client", "SubName", "Device Type"],
-    numberFields: ["port", "vpn_port", "dhcp", "on_landing_page", "order"],
+    numberFields: ["port", "vpn_port", "dhcp", "on_landing_page", "order", "inactive"],
     fields: {
       client: "Client", subname: "SubName", connection_type: "Connection Type",
       device_type: "Device Type", ip_address: "IP address", port: "Port",
@@ -212,16 +221,16 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
       dhcp: "DHCP", on_landing_page: "On Landing Page", notes_2: "Notes 2",
       current_version: "Current Version",
       last_reached_out_to_for_frimware_upgrade: "Last Reached Out To For Frimware Upgrade",
-      order: "Order", grouping: "Grouping", asset_id: "Asset ID",
+      order: "Order", grouping: "Grouping", asset_id: "Asset ID", inactive: "Inactive",
     },
   },
   adminEmails: {
     table: "admin_emails",
     comparisonKeys: ["Client", "Email"],
-    numberFields: ["automate"],
+    numberFields: ["automate", "inactive"],
     fields: {
       client: "Client", name: "Name", email: "Email", password: "Password",
-      notes: "Notes", automate: "Automate",
+      notes: "Notes", automate: "Automate", inactive: "Inactive",
     },
   },
   adminVoipLogins: {
@@ -256,16 +265,31 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   guacamoleHosts: {
     table: "guacamole_hosts",
     comparisonKeys: ["Client", "Cloud Name"],
+    numberFields: ["inactive"],
     fields: {
       client: "Client", cloud_name: "Cloud Name", ip: "IP", hard_coded_ip: "Hard Coded IP",
-      admin_username: "Admin username", password: "Password", notes: "Notes",
+      admin_username: "Admin username", password: "Password", notes: "Notes", inactive: "Inactive",
     },
   },
   companies: {
     table: "companies",
     comparisonKeys: ["Abbrv"],
-    numberFields: ["status"],
-    fields: { company_name: "Company Name", abbrv: "Abbrv", group: "Group", status: "Status" },
+    numberFields: ["status", "inactive"],
+    fields: {
+      company_name: "Company Name", abbrv: "Abbrv", group: "Group", status: "Status",
+      inactive: "Inactive",
+    },
+  },
+  miscRows: {
+    table: "misc_rows",
+    comparisonKeys: ["Client", "Source Row"],
+    numberFields: ["source_row", "inactive"],
+    fields: {
+      client: "Client", source_row: "Source Row", notes: "Notes", notes_1: "Notes 1",
+      notes_2: "Notes 2", notes_3: "Notes 3", notes_4: "Notes 4", notes_5: "Notes 5",
+      notes_6: "Notes 6", notes_7: "Notes 7", notes_8: "Notes 8", notes_9: "Notes 9",
+      inactive: "Inactive",
+    },
   },
 };
 
@@ -409,10 +433,7 @@ export async function readMigratedDataset(
   const includeInactive = options.includeInactive === true;
   if (source === "excel") return readExcelDataset(key, client, includeInactive);
 
-  const definition = DATASETS[key];
-  const apiRows = (await listSilverRows(definition.table, { client }))
-    .map((row) => toExcelShape(row, definition));
-  const selectedApiRows = includeInactive ? apiRows : filterOutInactive(apiRows);
+  const selectedApiRows = await readApiDataset(key, client, { includeInactive });
 
   if (source === "compare") {
     const excelRows = readExcelDataset(key, client, includeInactive);
@@ -420,4 +441,15 @@ export async function readMigratedDataset(
   }
 
   return selectedApiRows;
+}
+
+export async function readApiDataset(
+  key: MigratedDatasetKey,
+  client?: string,
+  options: { includeInactive?: boolean } = {},
+): Promise<Record<string, unknown>[]> {
+  const definition = DATASETS[key];
+  const apiRows = (await listSilverRows(definition.table, { client }))
+    .map((row) => toExcelShape(row, definition));
+  return options.includeInactive === true ? apiRows : filterOutInactive(apiRows);
 }

@@ -585,6 +585,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateCell',
+          apiId: row._apiId,
           rowIndex: row._rowIndex,
           columnKey,
           newValue,
@@ -641,6 +642,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'deleteRow',
+          apiId: row._apiId,
           rowIndex: row._rowIndex,
         }),
       });
@@ -1605,6 +1607,9 @@ export default function DashboardPage() {
           enablePasswordMasking={false}
           enableSearch={true}
           enableExport={true}
+          editable={true}
+          onCellEdit={(row, columnKey, newValue) => handleCellEdit('managedInfo', row, columnKey, newValue, ['Client', 'Provider'])}
+          onAdd={() => setAddModalType('managedInfo')}
           onInactivate={(row) => handleInactivate('managedInfo', row, ['Client', 'Provider'])}
         />
       </FullPageModal>
@@ -2620,6 +2625,29 @@ export default function DashboardPage() {
           { key: 'Notes', label: 'Notes' },
         ]}
         onSave={(data) => handleAddRecord('externalInfo', data)}
+      />
+
+      <AddRecordModal
+        isOpen={addModalType === 'managedInfo'}
+        onClose={() => setAddModalType(null)}
+        title="Add Point of Contact"
+        fields={[
+          { key: 'Client', label: 'Client', autoFill: true, defaultValue: selectedClient },
+          { key: 'Provider', label: 'Provider', required: true },
+          { key: 'Name', label: 'Contact Name' },
+          { key: 'Email', label: 'Email' },
+          { key: 'Phone 1', label: 'Phone 1' },
+          { key: 'Phone 2', label: 'Phone 2' },
+          { key: 'Phone 3', label: 'Phone 3' },
+          { key: 'Phone 4', label: 'Phone 4' },
+          { key: 'Account #', label: 'Account Number' },
+          { key: 'Type', label: 'Connection Type' },
+          { key: 'IP 1', label: 'Primary IP', type: 'ip' },
+          { key: 'IP 2', label: 'Secondary IP', type: 'ip' },
+          { key: 'Note 1', label: 'Notes 1' },
+          { key: 'Note 2', label: 'Notes 2' },
+        ]}
+        onSave={(data) => handleAddRecord('managedInfo', data)}
       />
 
       <AddRecordModal

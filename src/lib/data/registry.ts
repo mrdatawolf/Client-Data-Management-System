@@ -2,10 +2,8 @@
  * Data-source registry: the single place that knows where every piece of
  * app data currently lives, and how to verify it's reachable.
  *
- * Today every dataset is an Excel file (EXCEL_FILES) plus the SQLite
- * auth/preferences database. As datasets migrate to the database one file
- * at a time, their entry here flips from excel to sqlite — the startup
- * report and /api/health then show the new source automatically.
+ * Application datasets can be served by the data API or by the legacy Excel
+ * sources. The SQLite auth/preferences database remains local.
  *
  * Consumed by src/instrumentation.ts (startup report) and /api/health.
  */
@@ -174,5 +172,6 @@ export async function checkDataSources(): Promise<DataSourceStatus[]> {
     .map(checkExcelSource);
   const sqlite = await checkSqliteSources();
   const api = source === "excel" ? [] : [await checkSilverApi()];
-  return [...api, ...excel, checkMiscFolder(), ...sqlite];
+  const misc = source === "excel" ? [checkMiscFolder()] : [];
+  return [...api, ...excel, ...misc, ...sqlite];
 }
