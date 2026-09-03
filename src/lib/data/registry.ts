@@ -2,10 +2,8 @@
  * Data-source registry: the single place that knows where every piece of
  * app data currently lives, and how to verify it's reachable.
  *
- * Today every dataset is an Excel file (EXCEL_FILES) plus the SQLite
- * auth/preferences database. As datasets migrate to the database one file
- * at a time, their entry here flips from excel to sqlite — the startup
- * report and /api/health then show the new source automatically.
+ * Application datasets can be served by the data API or by the legacy Excel
+ * sources. The SQLite auth/preferences database remains local.
  *
  * Consumed by src/instrumentation.ts (startup report) and /api/health.
  */
@@ -15,8 +13,10 @@ import * as path from "path";
 import * as XLSX from "xlsx";
 import { EXCEL_FILES } from "@/types/data";
 import { getExcelFilePath } from "@/lib/excel/reader";
+import { checkDataApiHealth } from "@/lib/data/api-client";
+import { DATASETS, getReadSource } from "@/lib/data/silver-datasets";
 
-export type DataSourceType = "excel" | "sqlite" | "folder";
+export type DataSourceType = "excel" | "sqlite" | "folder" | "api";
 
 export interface DataSourceStatus {
   /** Dataset key, e.g. "core", "companies", "auth-db" */
@@ -140,12 +140,38 @@ async function checkSqliteSources(): Promise<DataSourceStatus[]> {
   }
 }
 
+async function checkSilverApi(): Promise<DataSourceStatus> {
+  const location = process.env.DATA_API_BASE_URL || "not configured";
+  const base: DataSourceStatus = {
+    key: "silver-api",
+    type: "api",
+    location,
+    container: Object.values(DATASETS).map(({ table }) => table).join(", "),
+    ok: false,
+  };
+
+  try {
+    return { ...base, ok: await checkDataApiHealth() };
+  } catch (error) {
+    return {
+      ...base,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 /**
  * Check every registered data source. Reads each Excel workbook, so on a
  * slow network share this can take a few seconds.
  */
 export async function checkDataSources(): Promise<DataSourceStatus[]> {
-  const excel = Object.keys(EXCEL_FILES).map(checkExcelSource);
+  const source = getReadSource();
+  const migratedKeys = new Set(Object.keys(DATASETS));
+  const excel = Object.keys(EXCEL_FILES)
+    .filter((key) => source !== "api" || !migratedKeys.has(key))
+    .map(checkExcelSource);
   const sqlite = await checkSqliteSources();
-  return [...excel, checkMiscFolder(), ...sqlite];
+  const api = source === "excel" ? [] : [await checkSilverApi()];
+  const misc = source === "excel" ? [checkMiscFolder()] : [];
+  return [...api, ...excel, ...misc, ...sqlite];
 }
