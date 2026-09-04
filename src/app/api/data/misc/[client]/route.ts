@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
 import {
   archiveMigratedRow,
   createMigratedRow,
-  getReadSource,
   readApiDataset,
   updateMigratedRow,
 } from "@/lib/data/silver-datasets";
-import * as fs from "fs";
-import * as path from "path";
 
-// Columns A-J in the misc xlsx files
+// Columns A-J in the misc rows dataset
 const MISC_COLUMNS = [
   "Notes",
   "Notes 1",
@@ -24,49 +20,9 @@ const MISC_COLUMNS = [
   "Notes 9",
 ];
 
-function getMiscFilePath(client: string): string {
-  const basePath = process.env.EXCEL_BASE_PATH || "./Examples";
-  return path.join(basePath, "Misc", `${client}.xlsx`);
-}
-
-function readMiscData(filePath: string): { data: Record<string, any>[]; sheetName: string } | null {
-  if (!fs.existsSync(filePath)) return null;
-
-  const fileBuffer = fs.readFileSync(filePath);
-  const workbook = XLSX.read(fileBuffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) return null;
-
-  const allData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
-  const data = allData.map((row) => {
-    const filtered: Record<string, any> = {};
-    for (const col of MISC_COLUMNS) {
-      filtered[col] = row[col] ?? "";
-    }
-    return filtered;
-  });
-
-  return { data, sheetName };
-}
-
-function writeMiscData(filePath: string, data: Record<string, any>[], sheetName: string): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  const workbook = XLSX.utils.book_new();
-  const sheet = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
-  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-  fs.writeFileSync(filePath, buffer);
-}
-
 /**
  * GET /api/data/misc/[client]
- * Reads the client-specific misc xlsx file from the Misc folder
- * and returns columns A-J as JSON data
+ * Returns the client's misc notes rows (columns A-J) from BTClientDataAPI.
  */
 export async function GET(
   request: NextRequest,
@@ -82,24 +38,10 @@ export async function GET(
       );
     }
 
-    if (getReadSource() !== "excel") {
-      const data = await readApiDataset("miscRows", client);
-      return NextResponse.json({ data, count: data.length });
-    }
-
-    const filePath = getMiscFilePath(client);
-    const result = readMiscData(filePath);
-
-    if (!result) {
-      return NextResponse.json({ data: [], count: 0 });
-    }
-
-    return NextResponse.json({
-      data: result.data,
-      count: result.data.length,
-    });
+    const data = await readApiDataset("miscRows", client);
+    return NextResponse.json({ data, count: data.length });
   } catch (error) {
-    console.error("Error reading misc file:", error);
+    console.error("Error reading misc data:", error);
     return NextResponse.json(
       { error: "Failed to load misc data", detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
@@ -109,28 +51,21 @@ export async function GET(
 
 /**
  * POST /api/data/misc/[client]
- * Update, add, or delete rows in the client-specific misc xlsx file
+ * Update, add, or delete rows in the client's misc notes dataset.
  *
  * Body:
  * {
  *   action: 'updateCell' | 'addRow' | 'deleteRow',
- *   rowIndex?: number,
- *   columnKey?: string,
- *   newValue?: any,
- *   rowData?: Record<string, any>
+ *   apiId?: number (required for updateCell/deleteRow),
+ *   columnKey?: string (for updateCell),
+ *   newValue?: any (for updateCell),
+ *   rowData?: Record<string, any> (for addRow)
  * }
  */
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ client: string }> }
 ) {
-  if (getReadSource() === "compare") {
-    return NextResponse.json(
-      { error: "Misc changes are disabled in compare mode" },
-      { status: 405 },
-    );
-  }
-
   try {
     const { client } = await context.params;
 
@@ -142,7 +77,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { action, rowIndex, columnKey, newValue, rowData, apiId } = body;
+    const { action, columnKey, newValue, rowData, apiId } = body;
 
     if (!["updateCell", "addRow", "deleteRow"].includes(action)) {
       return NextResponse.json(
@@ -151,86 +86,27 @@ export async function POST(
       );
     }
 
-    if (getReadSource() === "api") {
-      if (action === "addRow") {
-        const row = await createMigratedRow("miscRows", { Client: client, ...rowData });
-        return NextResponse.json({ success: true, row });
-      }
-      if (!Number.isInteger(apiId) || apiId <= 0) {
-        return NextResponse.json({ error: `A stable apiId is required for ${action}` }, { status: 400 });
-      }
-      if (action === "updateCell") {
-        if (!MISC_COLUMNS.includes(columnKey)) {
-          return NextResponse.json({ error: `Invalid column: ${columnKey}` }, { status: 400 });
-        }
-        const row = await updateMigratedRow("miscRows", apiId, { [columnKey]: newValue ?? "" });
-        return NextResponse.json({ success: true, row });
-      }
-      await archiveMigratedRow("miscRows", apiId);
-      return NextResponse.json({ success: true });
+    if (action === "addRow") {
+      const row = await createMigratedRow("miscRows", { Client: client, ...rowData });
+      return NextResponse.json({ success: true, row });
     }
 
-    const filePath = getMiscFilePath(client);
-    const result = readMiscData(filePath);
-    const data = result?.data ?? [];
-    const sheetName = result?.sheetName ?? "Sheet1";
-
-    switch (action) {
-      case "updateCell": {
-        if (rowIndex == null || !columnKey) {
-          return NextResponse.json(
-            { error: "rowIndex and columnKey are required for updateCell" },
-            { status: 400 }
-          );
-        }
-        if (rowIndex < 0 || rowIndex >= data.length) {
-          return NextResponse.json(
-            { error: `rowIndex ${rowIndex} out of bounds (0-${data.length - 1})` },
-            { status: 400 }
-          );
-        }
-        if (!MISC_COLUMNS.includes(columnKey)) {
-          return NextResponse.json(
-            { error: `Invalid column: ${columnKey}` },
-            { status: 400 }
-          );
-        }
-        data[rowIndex][columnKey] = newValue ?? "";
-        break;
-      }
-
-      case "addRow": {
-        const newRow: Record<string, any> = {};
-        for (const col of MISC_COLUMNS) {
-          newRow[col] = rowData?.[col] ?? "";
-        }
-        data.push(newRow);
-        break;
-      }
-
-      case "deleteRow": {
-        if (rowIndex == null) {
-          return NextResponse.json(
-            { error: "rowIndex is required for deleteRow" },
-            { status: 400 }
-          );
-        }
-        if (rowIndex < 0 || rowIndex >= data.length) {
-          return NextResponse.json(
-            { error: `rowIndex ${rowIndex} out of bounds (0-${data.length - 1})` },
-            { status: 400 }
-          );
-        }
-        data.splice(rowIndex, 1);
-        break;
-      }
+    if (!Number.isInteger(apiId) || apiId <= 0) {
+      return NextResponse.json({ error: `A stable apiId is required for ${action}` }, { status: 400 });
     }
 
-    writeMiscData(filePath, data, sheetName);
+    if (action === "updateCell") {
+      if (!MISC_COLUMNS.includes(columnKey)) {
+        return NextResponse.json({ error: `Invalid column: ${columnKey}` }, { status: 400 });
+      }
+      const row = await updateMigratedRow("miscRows", apiId, { [columnKey]: newValue ?? "" });
+      return NextResponse.json({ success: true, row });
+    }
 
-    return NextResponse.json({ success: true, message: `${action} completed successfully` });
+    await archiveMigratedRow("miscRows", apiId);
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Error updating misc file:", error);
+    console.error("Error updating misc data:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update misc data" },
       { status: 500 }

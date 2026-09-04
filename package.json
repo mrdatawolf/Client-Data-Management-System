@@ -7,7 +7,7 @@
     "build": "npm run docs:generate && next build",
     "start": "next start -p 6030",
     "start:standalone": "node .next/standalone/server.js",
-    "lint": "next lint",
+    "lint": "eslint .",
     "db:init": "tsx scripts/init-db.ts",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
@@ -54,8 +54,7 @@
     "react-markdown": "^10.1.0",
     "sql.js": "^1.12.0",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss-animate": "^1.0.7",
-    "xlsx": "^0.18.5"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

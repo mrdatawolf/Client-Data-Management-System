@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureExcelFileExists } from "@/lib/excel/reader";
-import { getReadSource, readMigratedDataset } from "@/lib/data/silver-datasets";
-
-const WEBSITE_HEADERS = [
-  "Client",
-  "Registrar", "Registrar Credential Location",
-  "Registrar Username", "Registrar Password",
-  "DNS Host", "DNS Server Credential Location",
-  "DNS Username", "DNS Password",
-  "Website Host", "Website Credential Location",
-  "Website Username", "Website Password",
-  "URL", "Notes", "Is Inactive"
-];
+import { readMigratedDataset } from "@/lib/data/silver-datasets";
 
 /**
  * GET /api/data/websites?client=XXX
@@ -29,8 +17,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Preserve legacy file creation only when Excel is actually being read.
-    if (getReadSource() !== "api") ensureExcelFileExists("websites", WEBSITE_HEADERS);
     const activeData = await readMigratedDataset("websites", client);
 
     return NextResponse.json({

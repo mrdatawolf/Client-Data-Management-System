@@ -481,7 +481,6 @@ export default function DashboardPage() {
           action: mode,
           apiId: mode === 'update' ? companyEditData?._apiId : undefined,
           rowData: data,
-          rowIdentifier: mode === 'update' ? { Abbrv: companyEditTarget } : undefined,
         }),
       });
 
@@ -586,7 +585,6 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'updateCell',
           apiId: row._apiId,
-          rowIndex: row._rowIndex,
           columnKey,
           newValue,
         }),
@@ -643,7 +641,6 @@ export default function DashboardPage() {
         body: JSON.stringify({
           action: 'deleteRow',
           apiId: row._apiId,
-          rowIndex: row._rowIndex,
         }),
       });
       const result = await response.json();
