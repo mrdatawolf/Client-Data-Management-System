@@ -55,12 +55,36 @@ if errorlevel 1 (
     goto :fail
 )
 
+rem next.config.js sets "output: standalone" (for the Electron/installer
+rem packaging pipeline), so plain "next start" / "npm run start" does not
+rem correctly serve this build - Next.js will warn and refuse. The real
+rem entry point is .next\standalone\server.js, and unlike a normal build,
+rem standalone output does not include public\ or .next\static\ - those
+rem have to be copied in after every build.
+if not exist ".next\standalone\server.js" (
+    echo ERROR: .next\standalone\server.js not found after build.
+    echo Check that next.config.js still sets "output: standalone".
+    goto :fail
+)
+
+echo Copying static assets into the standalone build...
+xcopy "public" ".next\standalone\public\" /E /I /Y /Q >nul
+if errorlevel 1 (
+    echo ERROR: Failed to copy public\ into the standalone build.
+    goto :fail
+)
+xcopy ".next\static" ".next\standalone\.next\static\" /E /I /Y /Q >nul
+if errorlevel 1 (
+    echo ERROR: Failed to copy .next\static into the standalone build.
+    goto :fail
+)
+
 echo.
 echo Starting server, version %APP_VERSION%...
 echo Open your browser to: http://localhost:6030
 echo Press Ctrl+C to stop the server.
 echo.
-call npm run start
+call npm run start:standalone
 
 echo.
 echo Server stopped.
