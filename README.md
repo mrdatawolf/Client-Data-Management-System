@@ -42,6 +42,13 @@ npm run dev
 
 Open [http://localhost:6030](http://localhost:6030) in your browser.
 
+### Windows production start
+
+On a Windows box, double-click `start.bat` (or run it from a shell) instead
+of running `npm run build`/`npm run start` by hand — it checks for
+Node/npm/`.env`, runs `npm install` if `node_modules` is missing, builds,
+prints the version from `package.json`, and starts the server.
+
 ## Project Documentation
 
 For complete project documentation, implementation plan, and technical details, see:
