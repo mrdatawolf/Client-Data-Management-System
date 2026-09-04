@@ -1,6 +1,5 @@
 import "server-only";
 
-import { filterByClient, filterOutInactive, readExcelFile } from "@/lib/excel/reader";
 import {
   archiveSilverRow,
   createSilverRow,
@@ -8,9 +7,7 @@ import {
   updateSilverRow,
   type SilverRow,
 } from "@/lib/data/api-client";
-import { EXCEL_FILES } from "@/types/data";
 
-export type DataReadSource = "excel" | "api" | "compare";
 export type MigratedDatasetKey =
   | "core"
   | "services"
@@ -293,19 +290,14 @@ export const DATASETS: Record<MigratedDatasetKey, DatasetDefinition> = {
   },
 };
 
-export function getReadSource(): DataReadSource {
-  const source = (process.env.DATA_READ_SOURCE || "excel").toLowerCase();
-  if (source === "excel" || source === "api" || source === "compare") return source;
-  console.warn(`Unknown DATA_READ_SOURCE=${source}; falling back to excel`);
-  return "excel";
-}
-
-export function isApiWriteMode(): boolean {
-  return getReadSource() === "api";
-}
-
-export function isCompareMode(): boolean {
-  return getReadSource() === "compare";
+/**
+ * Filter out rows where Inactive = 1
+ */
+export function filterOutInactive<T extends Record<string, any>>(data: T[]): T[] {
+  return data.filter((item) =>
+    item.Inactive !== 1 && item.Inactive !== '1' &&
+    item['Is Inactive'] !== 1 && item['Is Inactive'] !== '1'
+  );
 }
 
 function normalizeValue(value: unknown, numeric: boolean): unknown {
@@ -382,65 +374,12 @@ export async function archiveMigratedRow(fileKey: string, id: number): Promise<v
   await archiveSilverRow(DATASETS[key].table, id);
 }
 
-function readExcelDataset(
-  key: MigratedDatasetKey,
-  client: string | undefined,
-  includeInactive: boolean,
-): Record<string, unknown>[] {
-  const rows = readExcelFile<Record<string, unknown>>(
-    key as keyof typeof EXCEL_FILES,
-  );
-  const filtered = !client
-    ? rows
-    : key === "devices"
-      ? rows.filter((row) => row.client === client)
-      : filterByClient(rows as Array<{ Client: string }>, client);
-  return includeInactive ? filtered : filterOutInactive(filtered);
-}
-
-function comparisonKey(row: Record<string, unknown>, keys: string[]): string {
-  return keys.map((key) => String(row[key] ?? "").trim().toLowerCase()).join("|");
-}
-
-function logComparison(
-  key: MigratedDatasetKey,
-  client: string | undefined,
-  excelRows: Record<string, unknown>[],
-  apiRows: Record<string, unknown>[],
-): void {
-  const keys = DATASETS[key].comparisonKeys;
-  const excelIds = new Set(excelRows.map((row) => comparisonKey(row, keys)));
-  const apiIds = new Set(apiRows.map((row) => comparisonKey(row, keys)));
-  const missingFromApi = [...excelIds].filter((id) => !apiIds.has(id)).length;
-  const extraInApi = [...apiIds].filter((id) => !excelIds.has(id)).length;
-
-  console.info("Data source comparison", {
-    dataset: key,
-    client: client || "*",
-    excelCount: excelRows.length,
-    apiCount: apiRows.length,
-    missingFromApi,
-    extraInApi,
-  });
-}
-
 export async function readMigratedDataset(
   key: MigratedDatasetKey,
   client?: string,
   options: { includeInactive?: boolean } = {},
 ): Promise<Record<string, unknown>[]> {
-  const source = getReadSource();
-  const includeInactive = options.includeInactive === true;
-  if (source === "excel") return readExcelDataset(key, client, includeInactive);
-
-  const selectedApiRows = await readApiDataset(key, client, { includeInactive });
-
-  if (source === "compare") {
-    const excelRows = readExcelDataset(key, client, includeInactive);
-    logComparison(key, client, excelRows, selectedApiRows);
-  }
-
-  return selectedApiRows;
+  return readApiDataset(key, client, options);
 }
 
 export async function readApiDataset(

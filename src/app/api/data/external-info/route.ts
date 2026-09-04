@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { filterOutInactive } from "@/lib/excel/reader";
-import { readMigratedDataset } from "@/lib/data/silver-datasets";
+import { filterOutInactive, readMigratedDataset } from "@/lib/data/silver-datasets";
 
 /**
  * GET /api/data/external-info?client=XXX
