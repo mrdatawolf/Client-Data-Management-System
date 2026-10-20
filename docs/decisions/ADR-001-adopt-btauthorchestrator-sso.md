@@ -1,6 +1,6 @@
 # ADR-001: Adopt BTAuthOrchestrator for user sign-in (shared-domain SSO)
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-19
 Decision owners: Patrick Moon
 Related tasks and contracts: none yet (see "Follow-up work")
