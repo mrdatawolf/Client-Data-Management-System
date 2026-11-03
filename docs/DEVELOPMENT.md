@@ -5,8 +5,7 @@
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS** + **Radix UI** primitives
 - **better-sqlite3** for local auth/preferences data
-- **jsonwebtoken** / **jose** for JWT session auth (Node and edge runtimes
-  respectively)
+- **jsonwebtoken** / **jose** for JWT session auth (Node.js runtime)
 - **Electron** for optional desktop packaging
 - **next-swagger-doc** / **swagger-ui-dist** for the generated `/docs` API
   reference
@@ -22,7 +21,7 @@ src/
     data/         Dataset registry, BTClientDataAPI client, data-source health
     db/           SQLite connection helper (auth/preferences)
     preferences/  User preferences SQLite access
-  proxy.ts        Global auth enforcement (edge middleware)
+  proxy.ts        Global auth enforcement (Node.js proxy)
   types/          Shared data/preferences types
 scripts/          DB init/migrate/seed, docs generation, packaging scripts
 electron-app/     Electron shell for desktop builds
@@ -61,6 +60,9 @@ Relevant environment variables (see `.env`):
   client-infrastructure data through; see `docs/ARCHITECTURE.md`.
 - `JWT_SECRET`, `JWT_EXPIRES_IN`, `AUTH_DB_PATH`, `DISABLE_AUTH` — auth
   configuration.
+- `AUTH_ORCHESTRATOR_URL` — absolute HTTP(S) orchestrator base URL.
+- `AUTH_EXPECTED_ISSUER` — exact trusted token issuer.
+- `AUTH_LOGIN_PATH` — orchestrator login path (default `/auth/local-login`).
 - `FALLBACK_ADMIN_USERNAME` / `FALLBACK_ADMIN_PASSWORD` — break-glass admin;
   unset to disable.
 
@@ -80,7 +82,10 @@ Relevant environment variables (see `.env`):
 
 ## Testing philosophy
 
-No automated test suite exists yet. Validate changes by:
+Run `npm test` (`tsx --test tests/*.test.ts`) for the Node test suite.
+Auth tests use locally generated RSA keys, stub fetches, and an injected clock
+to exercise token validation, JWKS rotation/outages, and fallback precedence.
+Validate changes further by:
 
 - Running `npm run lint` and `npx tsc --noEmit` (or equivalent) for type
   safety.

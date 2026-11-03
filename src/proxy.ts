@@ -1,17 +1,12 @@
 /**
- * Global authentication proxy (Next.js middleware convention).
- *
- * Every page and API route requires a valid session cookie (a JWT signed
- * with JWT_SECRET) except the public paths below. Pages redirect to /login;
- * API routes get a 401. Set DISABLE_AUTH=true to bypass all checks.
- *
- * Verification uses jose because this runs on the edge runtime, where
- * jsonwebtoken's Node crypto isn't available. Tokens are issued by
- * /api/auth/login via src/lib/auth/jwt.ts — same secret, same HS256.
+ * Global authentication proxy on the Next.js Node.js runtime.
+ * Accepts verified orchestrator bt_session or configured fallback-admin session.
+ * Public paths bypass authentication; pages redirect to /login and APIs get 401.
+ * DISABLE_AUTH=true bypasses all checks.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { authenticateRequestCookies } from "./lib/auth/orchestrator";
 
 // Paths reachable without a session
 const PUBLIC_PATHS = [
@@ -20,9 +15,6 @@ const PUBLIC_PATHS = [
   "/api/auth/logout",
   "/api/config",
 ];
-
-// Must match the fallback in src/lib/auth/jwt.ts
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret-in-production";
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
@@ -41,14 +33,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("session")?.value;
-  if (token) {
-    try {
-      await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
-      return NextResponse.next();
-    } catch {
-      // Invalid or expired token — treat as unauthenticated
-    }
+  if (await authenticateRequestCookies(request.cookies)) {
+    return NextResponse.next();
   }
 
   if (pathname.startsWith("/api/")) {

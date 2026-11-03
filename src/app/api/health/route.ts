@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkDataSources } from "@/lib/data/registry";
+import { getOrchestratorVerifier } from "@/lib/auth/orchestrator";
 import { version } from "../../../../package.json";
 
 /**
@@ -23,6 +24,16 @@ import { version } from "../../../../package.json";
  *                 version: { type: string }
  *                 ok: { type: boolean, description: True when every required source is readable }
  *                 summary: { type: string, example: 24/24 data sources OK }
+ *                 auth:
+ *                   type: object
+ *                   description: Live orchestrator status; does not affect top-level ok
+ *                   properties:
+ *                     orchestratorUrl: { type: string, nullable: true }
+ *                     reachable: { type: boolean }
+ *                     keysCached: { type: boolean }
+ *                     keyCount: { type: integer }
+ *                     lastRefreshAt: { type: string, format: date-time, nullable: true }
+ *                     error: { type: string }
  *                 sources:
  *                   type: array
  *                   items:
@@ -38,7 +49,9 @@ import { version } from "../../../../package.json";
  *       401: { description: Not authenticated }
  */
 export async function GET() {
-  const sources = await checkDataSources();
+  const [sources, auth] = await Promise.all([
+    checkDataSources(), getOrchestratorVerifier().health(),
+  ]);
   const okCount = sources.filter((s) => s.ok).length;
   const failing = sources.filter((s) => !s.ok);
 
@@ -47,5 +60,6 @@ export async function GET() {
     ok: failing.length === 0,
     summary: `${okCount}/${sources.length} data sources OK`,
     sources,
+    auth,
   });
 }

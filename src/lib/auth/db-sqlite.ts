@@ -5,6 +5,7 @@
 
 import bcrypt from "bcryptjs";
 import { getDb } from "../db/sqlite";
+import { FALLBACK_ADMIN_ID } from "./fallback-admin";
 
 interface User {
   id: string;
@@ -23,7 +24,7 @@ interface User {
  * database is unavailable or its users table is broken. Leave the variables
  * unset to disable it entirely.
  */
-const BREAK_GLASS_ID = "fallback-admin-001";
+const BREAK_GLASS_ID = FALLBACK_ADMIN_ID;
 
 let breakGlassAdmin: User | null | undefined;
 

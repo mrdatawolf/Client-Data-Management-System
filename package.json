@@ -8,6 +8,7 @@
     "start": "next start -p 6030",
     "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint .",
+    "test": "tsx --test tests/*.test.ts",
     "db:init": "tsx scripts/init-db.ts",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",

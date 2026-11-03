@@ -12,6 +12,9 @@ export async function register() {
     return;
   }
 
+  const { logAuthConfiguration } = await import("@/lib/auth/orchestrator");
+  logAuthConfiguration();
+
   const { logDataSourceReport } = await import("@/lib/data/startup-report");
   await logDataSourceReport();
 }

@@ -23,8 +23,8 @@ Electron desktop app, sitting between Biztech staff and two backing stores:
 - `src/app/` — Next.js App Router pages (dashboard, login, API routes under
   `src/app/api/**`) and the generated Swagger/OpenAPI docs at `/docs`.
 - `src/proxy.ts` — global request middleware; verifies the JWT session cookie
-  (via `jose`, edge runtime) and enforces authentication on every route
-  except `PUBLIC_PATHS`. `DISABLE_AUTH=true` bypasses this entirely (dev
+  (orchestrator or fallback admin via `jose`, Node.js runtime) and enforces
+  authentication on every route except `PUBLIC_PATHS`. `DISABLE_AUTH=true` bypasses this entirely (dev
   only).
 - `src/lib/auth/` — JWT issuing/verification (`jwt.ts`), session cookie
   handling (`session.ts`), the auth SQLite database (`db.ts`, `db-sqlite.ts`),
