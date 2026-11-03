@@ -1,43 +1,52 @@
 /**
- * Session helpers for API routes: the session is a JWT (signed with
- * JWT_SECRET) stored in the httpOnly "session" cookie. Route-level
- * enforcement lives in src/middleware.ts; these helpers are for routes
- * that need to know WHO the user is.
+ * Resolve the verified request principal and its local identity for API routes.
+ * Authentication enforcement lives in src/proxy.ts; no token verification is
+ * duplicated here. Fallback and disabled sessions never require the database.
  */
-
 import { NextRequest } from "next/server";
-import { verifyToken } from "./jwt";
+import { authenticateRequestCookies } from "./orchestrator";
+import { FALLBACK_ADMIN_ID } from "./fallback-admin";
+import { resolveOrchestratorIdentity } from "./identity";
 
 export const SESSION_COOKIE = "session";
 
 export interface SessionUser {
   id: string;
   username: string;
+  email: string | null;
   role: string;
+  authSource: "disabled" | "fallback" | "orchestrator";
 }
 
-/**
- * Get the authenticated user from the request's session cookie.
- * Returns a guest admin when DISABLE_AUTH=true, null when not authenticated.
- */
-export function getSessionUser(request: NextRequest): SessionUser | null {
+/** Return the current user, or null when neither cookie authenticates. */
+export async function getSessionUser(
+  request: NextRequest,
+): Promise<SessionUser | null> {
   if (process.env.DISABLE_AUTH === "true") {
-    return { id: "guest", username: "guest", role: "admin" };
+    return {
+      id: "guest",
+      username: "guest",
+      email: null,
+      role: "admin",
+      authSource: "disabled",
+    };
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) {
+  const principal = await authenticateRequestCookies(request.cookies);
+  if (!principal) {
     return null;
   }
-
-  const payload = verifyToken(token);
-  if (!payload) {
-    return null;
+  if (principal.source === "fallback") {
+    return {
+      id: FALLBACK_ADMIN_ID,
+      username: principal.username,
+      email: null,
+      role: "admin",
+      authSource: "fallback",
+    };
   }
-
   return {
-    id: payload.userId,
-    username: payload.username,
-    role: payload.role || "user",
+    ...(await resolveOrchestratorIdentity(principal)),
+    authSource: "orchestrator",
   };
 }

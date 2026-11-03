@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById } from "@/lib/auth/db";
 import { getSessionUser } from "@/lib/auth/session";
 
 /**
@@ -10,7 +9,7 @@ import { getSessionUser } from "@/lib/auth/session";
  *     summary: Get the currently authenticated user
  *     responses:
  *       200:
- *         description: The logged-in user
+ *         description: Current identity including authSource; never includes a password
  *         content:
  *           application/json:
  *             schema:
@@ -21,29 +20,13 @@ import { getSessionUser } from "@/lib/auth/session";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = getSessionUser(request);
+    const session = await getSessionUser(request);
 
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get full user details from database
-    const user = await findUserById(session.id);
-
-    if (!user) {
-      // Session valid but user not in DB (guest/break-glass) - return session data
-      return NextResponse.json({
-        user: {
-          id: session.id,
-          username: session.username,
-          role: session.role,
-        },
-      });
-    }
-
-    // Return user without password
-    const { password, ...userWithoutPassword } = user;
-    return NextResponse.json({ user: userWithoutPassword });
+    return NextResponse.json({ user: session });
   } catch (error) {
     console.error("Get user error:", error);
     return NextResponse.json(

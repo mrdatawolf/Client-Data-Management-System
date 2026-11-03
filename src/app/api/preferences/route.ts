@@ -29,7 +29,7 @@ import { getSessionUser } from "@/lib/auth/session";
  *       401: { description: Not authenticated }
  */
 export async function GET(request: NextRequest) {
-  const user = getSessionUser(request);
+  const user = await getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
  *       401: { description: Not authenticated }
  */
 export async function POST(request: NextRequest) {
-  const user = getSessionUser(request);
+  const user = await getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

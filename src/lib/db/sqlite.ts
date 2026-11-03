@@ -35,6 +35,22 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_user_preferences_key ON user_preferences(key);
 `;
 
+/** Add orchestrator identity columns without rebuilding existing users or preferences. */
+export function migrateOrchestratorIdentity(db: BetterSqlite3.Database): void {
+  db.transaction(() => {
+    const columns = db.pragma("table_info(users)") as { name: string }[];
+    for (const column of ["iss", "sub"]) {
+      if (!columns.some(({ name }) => name === column)) {
+        db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT`);
+      }
+    }
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_iss_sub
+      ON users(iss, sub) WHERE iss IS NOT NULL AND sub IS NOT NULL
+    `);
+  }).immediate();
+}
+
 let db: BetterSqlite3.Database | null = null;
 let dbAvailable: boolean | null = null;
 let dbLoadError: string | null = null;
@@ -65,6 +81,7 @@ export async function getDb(): Promise<BetterSqlite3.Database | null> {
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
     db.exec(SCHEMA);
+    migrateOrchestratorIdentity(db);
     dbAvailable = true;
     return db;
   } catch (error) {

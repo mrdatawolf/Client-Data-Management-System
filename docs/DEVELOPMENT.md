@@ -46,8 +46,16 @@ Key scripts (see `package.json` for the full list):
 - `npm run db:init` / `db:migrate` / `db:seed` — local SQLite setup.
 - `npm run auth:init`, `npm run preferences:init` — initialize the
   auth/preferences SQLite databases.
-- `npm run users -- add <name> --role admin` — provision a user (no admin UI
-  yet).
+- Users are provisioned on first orchestrator sign-in. Operator commands:
+  `npm run users -- list` (includes linked status), `remove <username>`,
+  `role <username> <admin|user>`, and
+  `link <username> <orchestrator-username>` (each after `npm run users --`).
+  `link` merges the source orchestrator row into the named target, retaining
+  target ID, role and preferences; source preferences are deleted. It can
+  replace a target's prior identity after an Entra move. Source lookup is
+  case-insensitive and rejects ambiguous matches; target names are exact.
+  Use `list` to find collision-disambiguated source names. `add` and `passwd`
+  are retired. CLI operations run the idempotent identity migration.
 - `npm run docs:generate` — regenerate the Swagger/OpenAPI docs from
   `@swagger` JSDoc annotations on `src/app/api/**/route.ts` handlers (runs
   automatically as part of `npm run build`).
@@ -107,3 +115,17 @@ integration or unit tests are introduced).
   local development.
 - BTClientDataAPI is reached over plain HTTP inside the corporate firewall;
   treat that boundary as trusted-network-only, not internet-facing.
+
+## Session identity
+
+`getSessionUser(request)` is async; routes must await it. It reuses
+`authenticateRequestCookies` and returns only `id`, `username`, `email`, `role`
+and `authSource`. Disabled auth returns the guest admin; fallback auth returns
+its configured admin without accessing SQLite. Orchestrator auth maps verified
+(`iss`, `sub`) to a local row, or links exactly one unlinked username matching
+`upn` case-insensitively (excluding fallback admin). Existing roles and
+preferences survive linking. New identities receive role `user` and an unusable
+password sentinel. A username collision keeps an existing row's name; new rows
+use `<upn>#<first-eight-sub-characters>` then `-2`, `-3`, etc. as needed.
+Database failures return a transient `orchestrator:<sub>` identity; preference
+failure handling is unchanged. `/api/auth/me` exposes only the session fields.

@@ -30,7 +30,7 @@ interface RouteContext {
  *       404: { description: Preference not found }
  */
 export async function GET(request: NextRequest, context: RouteContext) {
-  const user = getSessionUser(request);
+  const user = await getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
  *       500: { description: Failed to update preference }
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const user = getSessionUser(request);
+  const user = await getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -144,7 +144,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  *       404: { description: Preference not found }
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
-  const user = getSessionUser(request);
+  const user = await getSessionUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

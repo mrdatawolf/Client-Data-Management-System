@@ -48,12 +48,14 @@ function generateSpec() {
           User: {
             type: "object",
             properties: {
-              id: { type: "string", format: "uuid" },
+              id: { type: "string" },
               username: { type: "string" },
               email: { type: "string", nullable: true },
               role: { type: "string", enum: ["admin", "user"] },
-              createdAt: { type: "string", format: "date-time" },
-              updatedAt: { type: "string", format: "date-time" },
+              authSource: {
+                type: "string",
+                enum: ["orchestrator", "fallback", "disabled"],
+              },
             },
           },
           Company: {
