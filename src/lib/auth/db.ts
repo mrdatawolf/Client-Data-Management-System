@@ -6,9 +6,7 @@
 export {
   findUserByUsername,
   findUserById,
-  verifyPassword,
-  createUser,
-  updateUserPassword,
+  verifyFallbackAdmin,
   deleteUser,
   listUsers,
 } from "./db-sqlite";

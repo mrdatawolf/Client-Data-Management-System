@@ -66,8 +66,9 @@ Relevant environment variables (see `.env`):
 
 - `DATA_API_BASE_URL` — the BTClientDataAPI instance this app reads/writes
   client-infrastructure data through; see `docs/ARCHITECTURE.md`.
-- `JWT_SECRET`, `JWT_EXPIRES_IN`, `AUTH_DB_PATH`, `DISABLE_AUTH` — auth
-  configuration.
+- `JWT_SECRET`, `JWT_EXPIRES_IN` — fallback-admin session signing and lifetime only.
+- `COOKIE_SECURE` — Secure attribute for the fallback `session` only.
+- `AUTH_DB_PATH` — local identities/preferences; `DISABLE_AUTH` — dev-only bypass.
 - `AUTH_ORCHESTRATOR_URL` — absolute HTTP(S) orchestrator base URL.
 - `AUTH_EXPECTED_ISSUER` — exact trusted token issuer.
 - `AUTH_LOGIN_PATH` — orchestrator login path (default `/auth/local-login`).
@@ -129,3 +130,48 @@ password sentinel. A username collision keeps an existing row's name; new rows
 use `<upn>#<first-eight-sub-characters>` then `-2`, `-3`, etc. as needed.
 Database failures return a transient `orchestrator:<sub>` identity; preference
 failure handling is unchanged. `/api/auth/me` exposes only the session fields.
+
+## Login flow and manual validation
+
+Configure AUTH_ORCHESTRATOR_URL and AUTH_EXPECTED_ISSUER (production:
+https://orca.biztechro.com), with AUTH_LOGIN_PATH defaulting to
+`/auth/local-login` (`/auth/login` for Entra). Missing/invalid orchestrator
+configuration produces no sign-in link. Both FALLBACK_ADMIN_USERNAME and
+FALLBACK_ADMIN_PASSWORD enable the collapsed emergency form on `/login`;
+this login works even when the orchestrator and database are unavailable.
+Local DB passwords no longer authenticate. Restart after environment changes.
+
+The landing page fetches public config and checks `/api/auth/me` on load.
+Disabled auth or an existing valid session leads to `/dashboard`. Otherwise,
+select Sign in with BT Auth, complete sign-in in the new tab, return, and select
+Continue. Failed checks announce "Still not signed in"; browser storage failure
+does not prevent authentication. Bare IP/localhost access shows an off-domain
+notice because browsers cannot send the shared cookie there.
+
+Manual browser acceptance (requires a deployed CDMS *.biztechro.com hostname):
+
+1. With auth enabled, clear both cookies and open CDMS /dashboard. Confirm
+   redirect to /login. Select Continue before signing in: confirm the live
+   status reads "Still not signed in".
+2. Select Sign in with BT Auth; confirm a separate tab opens the configured
+   orchestrator. Sign in with an administrator-provisioned account, return to
+   CDMS, and select Continue. Confirm /dashboard and /api/auth/me 200 with
+   authSource=orchestrator; confirm existing user preferences load.
+3. Open /login while authenticated: confirm automatic /dashboard navigation.
+4. Use dashboard sign-out. Inspect the response's two Set-Cookie headers and
+   browser storage: both session and shared .biztechro.com bt_session disappear.
+   Confirm /api/auth/me returns 401 and /dashboard redirects to /login. Confirm
+   another app sharing bt_session requires sign-in on its next auth check.
+5. Repeat cookie deletion over HTTP and HTTPS (including the deployed reverse
+   proxy): bt_session deletion is Secure only for HTTPS; session follows
+   COOKIE_SECURE. Off-domain logout succeeds but cannot delete the shared cookie.
+6. At localhost/IP confirm the off-domain notice; on the CDMS hostname confirm
+   it is absent. At 320px width, light/dark themes and keyboard-only navigation,
+   confirm no overflow, visible focus, labelled fields, live errors and disabled
+   buttons during requests.
+7. With fallback configured, expand Emergency admin sign-in and test wrong then
+   correct credentials. Confirm success with orchestrator/DB unavailable.
+   Unset either fallback variable and restart: confirm the form is absent and
+   direct valid-input login attempts return 401. Legacy local passwords return
+   401. Invalid orchestrator config shows a configuration message, not a link.
+8. With DISABLE_AUTH=true in local development, confirm /login goes to /dashboard.

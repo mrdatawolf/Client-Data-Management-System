@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyPassword } from "@/lib/auth/db";
+import { verifyFallbackAdmin } from "@/lib/auth/db";
 import { generateToken, getSessionMaxAgeSeconds } from "@/lib/auth/jwt";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 
@@ -8,8 +8,8 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
  * /api/auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Log in with username and password
- *     description: On success, sets the httpOnly `session` cookie (a signed JWT) used by all other endpoints.
+ *     summary: Sign in as the emergency fallback admin
+ *     description: Only configured fallback-admin credentials are accepted. Local user passwords are retired. Sets the httpOnly HS256 `session` cookie on success; no database access is required.
  *     security: []
  *     requestBody:
  *       required: true
@@ -43,17 +43,24 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { error: "Username and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Verify credentials against auth.db
-    const user = await verifyPassword(username, password);
+    if (typeof username !== "string" || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Invalid username or password" },
+        { status: 401 },
+      );
+    }
+
+    // Verify only the environment-configured break-glass credentials
+    const user = await verifyFallbackAdmin(username, password);
 
     if (!user) {
       return NextResponse.json(
         { error: "Invalid username or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -72,6 +79,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         email: user.email,
         role: user.role,
+        authSource: "fallback",
       },
     });
 
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest) {
     console.error("Login error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -214,3 +214,10 @@ export async function authenticateRequestCookies(
   const token = cookies.get("bt_session")?.value;
   return token ? orchestrator.verify(token) : null;
 }
+
+/** Configured sign-in destination; use the verifier's existing validation rules. */
+export function getOrchestratorLoginUrl(): string | null {
+  if (getOrchestratorVerifier().configError) return null;
+  const config = readAuthConfig();
+  return new URL(config.orchestratorUrl!).href.replace(/\/+$/, "") + config.loginPath;
+}

@@ -29,6 +29,13 @@ const BREAK_GLASS_ID = FALLBACK_ADMIN_ID;
 let breakGlassAdmin: User | null | undefined;
 
 function getBreakGlassAdmin(): User | null {
+  if (
+    !process.env.FALLBACK_ADMIN_USERNAME ||
+    !process.env.FALLBACK_ADMIN_PASSWORD
+  ) {
+    return null;
+  }
+
   if (breakGlassAdmin !== undefined) {
     return breakGlassAdmin;
   }
@@ -57,7 +64,9 @@ function getBreakGlassAdmin(): User | null {
 /**
  * Find a user by username
  */
-export async function findUserByUsername(username: string): Promise<User | null> {
+export async function findUserByUsername(
+  username: string,
+): Promise<User | null> {
   try {
     const db = await getDb();
 
@@ -101,8 +110,7 @@ export async function findUserById(id: string): Promise<User | null> {
     }
 
     const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
-      | User
-      | undefined;
+      User | undefined;
     return row ?? null;
   } catch (error) {
     console.error("Error reading user database:", error);
@@ -111,11 +119,11 @@ export async function findUserById(id: string): Promise<User | null> {
 }
 
 /**
- * Verify a user's password
+ * Verify only the environment-configured fallback admin; never open the DB.
  */
-export async function verifyPassword(
+export async function verifyFallbackAdmin(
   username: string,
-  password: string
+  password: string,
 ): Promise<Omit<User, "password"> | null> {
   // Break-glass admin always works when configured, regardless of DB state
   const admin = getBreakGlassAdmin();
@@ -129,89 +137,7 @@ export async function verifyPassword(
     return adminWithoutPassword;
   }
 
-  const user = await findUserByUsername(username);
-
-  if (!user) {
-    return null;
-  }
-
-  const isValid = await bcrypt.compare(password, user.password);
-
-  if (!isValid) {
-    return null;
-  }
-
-  // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
-}
-
-/**
- * Create a new user
- */
-export async function createUser(
-  username: string,
-  password: string,
-  email?: string,
-  role: string = "user"
-): Promise<Omit<User, "password">> {
-  const db = await getDb();
-
-  if (!db) {
-    throw new Error("Database not available - cannot create users");
-  }
-
-  // Check if username already exists
-  const existing = db
-    .prepare("SELECT id FROM users WHERE username = ?")
-    .get(username);
-
-  if (existing) {
-    throw new Error("Username already exists");
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const crypto = await import("crypto");
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  db.prepare(
-    "INSERT INTO users (id, username, password, email, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, username, hashedPassword, email || null, role, now, now);
-
-  return {
-    id,
-    username,
-    email: email || null,
-    role,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-/**
- * Update a user's password
- */
-export async function updateUserPassword(
-  userId: string,
-  newPassword: string
-): Promise<boolean> {
-  const db = await getDb();
-
-  if (!db) {
-    throw new Error("Database not available - cannot update password");
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  const now = new Date().toISOString();
-
-  const result = db
-    .prepare("UPDATE users SET password = ?, updatedAt = ? WHERE id = ?")
-    .run(hashedPassword, now, userId);
-
-  return result.changes > 0;
+  return null;
 }
 
 /**
@@ -245,7 +171,7 @@ export async function listUsers(): Promise<Omit<User, "password">[]> {
 
   const rows = db
     .prepare(
-      "SELECT id, username, email, role, createdAt, updatedAt FROM users ORDER BY username"
+      "SELECT id, username, email, role, createdAt, updatedAt FROM users ORDER BY username",
     )
     .all() as Omit<User, "password">[];
 

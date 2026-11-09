@@ -9,7 +9,7 @@ Electron desktop app, sitting between Biztech staff and two backing stores:
   record for client infrastructure data. Reached over HTTP at
   `DATA_API_BASE_URL` (e.g. `http://192.168.203.238:7310`). CDMS is a client
   of this API, not a co-owner of its schema.
-- **Local SQLite** (`better-sqlite3`) — owns authentication (`AUTH_DB_PATH`,
+- **Local SQLite** (`better-sqlite3`) — owns local identities (`AUTH_DB_PATH`,
   default `./data/auth.db`) and user preferences. This has already fully
   migrated off Excel/flat files; it is local to each CDMS deployment, not
   shared with BTClientDataAPI.
@@ -67,7 +67,7 @@ Electron desktop app, sitting between Biztech staff and two backing stores:
   firewall), reached over plain HTTP; it is a separate deployment with its
   own security posture, out of scope for this repository.
 - The break-glass admin (`FALLBACK_ADMIN_USERNAME`/`PASSWORD` in `.env`) is a
-  deliberate bypass of normal DB-backed auth and must always work.
+  deliberate break-glass path independent of the orchestrator and DB.
 
 ## Migration state
 
@@ -81,3 +81,23 @@ the source of truth going forward. One known minor gap: the `acronis_backups`
 table doesn't have an `encrypt_pw_7` column, so that one field is
 write-only-to-nothing until BTClientDataAPI's source Excel header (and a
 reseed) adds it.
+
+## Authentication and sign-out
+
+BTAuthOrchestrator is the primary identity provider. CDMS verifies its RS256
+`bt_session` using configured issuer/JWKS rules, then maps identities to local
+SQLite rows for roles and preferences. Local stored passwords are retired and
+never checked. Only the environment-configured fallback admin can use
+`POST /api/auth/login`; it issues an HS256 `session` without opening SQLite.
+
+Unauthenticated pages redirect to CDMS `/login`. The landing page opens BT Auth
+in a new tab; users return and select Continue to recheck `/api/auth/me`.
+The emergency admin form is collapsed and shown only when configured.
+`/api/config` exposes the fallback-enabled boolean and configured sign-in URL,
+never fallback credentials. Existing authenticated users bypass the landing page.
+
+Sign-out expires both the host-only `session` and `bt_session` for
+`.biztechro.com`, signing out all apps sharing that cookie. The latter deletion
+uses Secure when the request protocol or first x-forwarded-proto value is HTTPS;
+COOKIE_SECURE controls only the fallback cookie. CDMS does not call the
+orchestrator logout endpoint. Off-domain browsers cannot clear the shared cookie.
