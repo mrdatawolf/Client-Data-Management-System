@@ -74,6 +74,11 @@ Relevant environment variables (see `.env`):
 - `AUTH_LOGIN_PATH` — orchestrator login path (default `/auth/local-login`).
 - `FALLBACK_ADMIN_USERNAME` / `FALLBACK_ADMIN_PASSWORD` — break-glass admin;
   unset to disable.
+- `PHONE_LIST` — folder of per-client phone-system exports named
+  `<ABBRV>.xlsx` (e.g. `/mnt/SharedFolders/Data/Phone Lists/Mills phone user
+  lists`). Read-only. When a client has no file, the dashboard Phones button
+  shows "N/A". If it is unset, `/api/data/phone-list` returns 500 and the
+  button shows "N/A".
 
 ## Coding conventions
 

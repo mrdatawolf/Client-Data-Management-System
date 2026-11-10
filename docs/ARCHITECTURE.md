@@ -17,6 +17,10 @@ Electron desktop app, sitting between Biztech staff and two backing stores:
   infrastructure data, retired (see "Migration state" below). `Examples/`
   still holds sample `.xlsx` files for reference; the app no longer reads
   them.
+- **Phone list share** (`PHONE_LIST`) — a read-only folder of phone-system
+  user exports, one `<client abbreviation>.xlsx` per client (sheets "Users"
+  and "Call Queues"). It is read with `exceljs`. This is the only `.xlsx`
+  the app reads, and it never writes to it.
 
 ## Major components
 
@@ -38,6 +42,10 @@ Electron desktop app, sitting between Biztech staff and two backing stores:
   - `api-client.ts` — thin typed HTTP client for BTClientDataAPI
     (list/create/update/archive `SilverRow`s), including timeout and error
     handling.
+  - `phone-list.ts` — reads `<PHONE_LIST>/<client>.xlsx` for
+    `/api/data/phone-list` (dashboard Phones / Call Queues modals). It
+    validates the abbreviation, confines paths to `PHONE_LIST`, and returns
+    `{ available: false }` when no file exists.
   - `registry.ts` — cross-cutting health/status check for every configured
     data source (the SQLite auth/preferences DBs and the API), consumed by
     `src/instrumentation.ts` and `/api/health`.

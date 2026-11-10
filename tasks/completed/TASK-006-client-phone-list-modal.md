@@ -1,7 +1,7 @@
 # TASK-006: Client phone list button and modal
 
 Owner role: Implementer (UI parts may go to interface-designer)
-Assigned agent: Codex
+Assigned agent: Claude (reassigned from Codex 2026-11-10: Codex sandbox could not write)
 Proposed by: Claude
 Proposed date: 2026-11-09
 Approved by: Patrick
@@ -91,17 +91,79 @@ user list in a full-page modal.
 
 ## Acceptance criteria
 
-- [ ] Phones button appears between Sites and Reports when a client is
+- [x] Phones button appears between Sites and Reports when a client is
       selected.
-- [ ] The modal lists that client's users with the agreed columns and is
+- [x] The modal lists that client's users with the agreed columns and is
       sortable.
-- [ ] For a client with no file, the button is greyed out, disabled and reads
+- [x] For a client with no file, the button is greyed out, disabled and reads
       "N/A".
-- [ ] The Call Queues button in the Phones modal opens a second modal with
+- [x] The Call Queues button in the Phones modal opens a second modal with
       that sheet.
-- [ ] An abbreviation such as `../x` is rejected; no file outside `PHONE_LIST`
+- [x] An abbreviation such as `../x` is rejected; no file outside `PHONE_LIST`
       can be read.
-- [ ] Unauthenticated requests to the route are rejected like the other data
+- [x] Unauthenticated requests to the route are rejected like the other data
       routes.
-- [ ] Docs and `.env.example` describe `PHONE_LIST`.
-- [ ] Tests, `npm run build` and `npm run lint` pass.
+- [x] Docs and `.env.example` describe `PHONE_LIST`.
+- [x] Tests, `npm run build` and `npm run lint` pass.
+
+## Implementation report
+
+Task: TASK-006
+Implementer: Claude (reassigned from Codex: its sandbox could not write to `.git` or the npm cache)
+Date: 2026-11-10
+
+### Changes made
+
+- `package.json` / `package-lock.json`: added `exceljs` ^4.4.0.
+- `src/lib/data/phone-list.ts` (new): `resolvePhoneListPath` validates the
+  abbreviation (`^[A-Za-z0-9_-]+$`) and requires the resolved file to sit
+  directly in `PHONE_LIST`. `readPhoneList` returns `{ available: false }`
+  for a missing file, otherwise `{ available, users, callQueues }`. Users are
+  mapped to the D2 columns, with Name = First + Last. Cell values (rich text,
+  hyperlinks, formulas, dates) are converted to plain text.
+- `src/app/api/data/phone-list/route.ts` (new): GET route with a Swagger
+  annotation. Errors: 400 for a missing or invalid client, 500 if
+  `PHONE_LIST` is unset or the read fails. Auth comes from `src/proxy.ts` as
+  for every other data route.
+- `src/app/dashboard/page.tsx`: `phoneList` state, fetched with the other
+  client data. Its fetch has its own `.catch`, so a share outage cannot blank
+  the rest of the dashboard. The Phones button sits between Sites and
+  Reports and is disabled and greyed with the label "N/A" when unavailable.
+  The Phones modal is a sortable, searchable and exportable `DataTable`. Its
+  "Call Queues (n)" button opens the second modal; closing that modal returns
+  to Phones. Default sorts: Name, and Assigned Call Queues.
+- `tests/phone-list.test.ts` (new).
+- `.env.example`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`: `PHONE_LIST`
+  documented.
+
+### Validation performed
+
+- `npm test`: 46/46 pass. The new tests use temporary fixture workbooks and
+  cover a valid client (with and without a placeholder row), a missing file,
+  traversal attempts (`../x`, `..`, `a/b`, `a\b`, `GLC.xlsx`, empty), and
+  an unset env.
+- `npm run lint`: clean. `npm run build`: passes.
+- Built server (`next start`): unauthenticated GET returns 401. With auth
+  bypassed against the real share: GLC returns 22 users and 13 queue rows,
+  `ACME` returns `{"available":false}`, and `../x` returns 400.
+- Not done: a visual click-through of the dashboard in a browser.
+
+### Assumptions and deviations
+
+- The task notes said row 1 of the Users sheet holds `%Placeholder%` tokens.
+  In the real files, row 1 is the readable header (the tokens only exist in
+  the shared-strings table). The parser skips a placeholder row only when one
+  is present, so both layouts work.
+- Call Queues shows all five sheet columns as-is (Mailbox ID, First Name,
+  Last Name, Extension, Assigned Call Queues). D3 did not pick columns.
+- The Call Queues button inside the Phones modal is disabled when that sheet
+  is empty.
+- `PHONE_LIST` unset or the share unreachable: the button shows "N/A", the
+  same as a missing file. The route still returns 500 for diagnosis.
+
+### Unresolved risks
+
+- The phone list is re-read from the share on every client load (no
+  caching). This is fine at the current file sizes (~10–30 KB).
+- `npm install` reported existing audit warnings. These were not
+  investigated and are out of scope.

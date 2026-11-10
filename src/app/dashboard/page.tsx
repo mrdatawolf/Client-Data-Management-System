@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { PREFERENCE_KEYS, Theme } from "@/types/preferences";
 
 const CLIENT_STORAGE_KEY = "selectedClient";
+const EMPTY_PHONE_LIST = { available: false, users: [], callQueues: [] };
 const SORT_PREFS_STORAGE_KEY = "sortPreferences";
 
 // Default sorts for each table (user's preference overrides these)
@@ -24,6 +25,8 @@ const DEFAULT_SORTS: Record<string, SortConfig> = {
   usersModal: { key: 'Login', direction: 'asc' },
   domainAD: { key: 'IP address', direction: 'asc' },
   workstations: { key: 'IP Address', direction: 'asc' },
+  phoneListModal: { key: 'Name', direction: 'asc' },
+  callQueuesModal: { key: 'Assigned Call Queues', direction: 'asc' },
 };
 
 export default function DashboardPage() {
@@ -58,6 +61,7 @@ export default function DashboardPage() {
   const [workstations, setWorkstations] = useState<any[]>([]);
   const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
   const [websites, setWebsites] = useState<any[]>([]);
+  const [phoneList, setPhoneList] = useState<{ available: boolean; users: any[]; callQueues: any[] }>(EMPTY_PHONE_LIST);
   const [whoisAvailable, setWhoisAvailable] = useState(false);
 
   // Modal state
@@ -163,9 +167,13 @@ export default function DashboardPage() {
       fetch(`/api/data/workstations?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/misc/${selectedClient}?${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
       fetch(`/api/data/phone-numbers?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
-      fetch(`/api/data/websites?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json())
+      fetch(`/api/data/websites?client=${selectedClient}${cacheBuster}`, { cache: 'no-store' }).then(res => res.json()),
+      // Phone list lives on a file share; a failure here must not blank the other data.
+      fetch(`/api/data/phone-list?client=${encodeURIComponent(selectedClient)}${cacheBuster}`, { cache: 'no-store' })
+        .then(res => res.json())
+        .catch(() => EMPTY_PHONE_LIST)
     ])
-      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult, phoneData, websitesData]) => {
+      .then(([externalData, coreData, wsUsersData, managedData, adminData, guacData, devicesData, containersData, vmsData, daemonsData, servicesData, domainsData, camerasData, emailsData, usersData, workstationsData, miscResult, phoneData, websitesData, phoneListData]) => {
         setExternalInfo(externalData.data || []);
         setCoreInfra(coreData.data || []);
         setWorkstationsUsers(wsUsersData.data || []);
@@ -190,6 +198,9 @@ export default function DashboardPage() {
         setMiscData((miscResult.data || []).map((row: any, idx: number) => ({ ...row, _rowIndex: idx })));
         setPhoneNumbers(phoneData.data || []);
         setWebsites(websitesData.data || []);
+        setPhoneList(phoneListData?.available
+          ? { available: true, users: phoneListData.users || [], callQueues: phoneListData.callQueues || [] }
+          : EMPTY_PHONE_LIST);
         setLoadingData(false);
       })
       .catch(err => {
@@ -218,6 +229,7 @@ export default function DashboardPage() {
         setMiscData([]);
         setPhoneNumbers([]);
         setWebsites([]);
+        setPhoneList(EMPTY_PHONE_LIST);
         setLoadingData(false);
       });
   }, [selectedClient]);
@@ -834,6 +846,7 @@ export default function DashboardPage() {
       setMiscData([]);
       setPhoneNumbers([]);
       setWebsites([]);
+      setPhoneList(EMPTY_PHONE_LIST);
     }
   }, [selectedClient, fetchClientData]);
 
@@ -1019,6 +1032,14 @@ export default function DashboardPage() {
                   className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Sites
+                </button>
+                <button
+                  onClick={() => setOpenModal('phoneListModal')}
+                  disabled={!phoneList.available}
+                  title={phoneList.available ? 'Phone system user list' : 'No phone list for this client'}
+                  className="px-2 py-1 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-xs font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white dark:disabled:hover:bg-gray-700"
+                >
+                  {phoneList.available ? 'Phones' : 'N/A'}
                 </button>
                 <button
                   onClick={() => setOpenModal('reports')}
@@ -1918,6 +1939,63 @@ export default function DashboardPage() {
           onCellEdit={(row, columnKey, newValue) => handleCellEdit('websites', row, columnKey, newValue, ['Client', 'DNS Host', 'URL'])}
           onAdd={() => setAddModalType('websites')}
           onInactivate={(row) => handleInactivate('websites', row, ['Client', 'DNS Host', 'URL'], 'Is Inactive')}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'phoneListModal'}
+        onClose={() => setOpenModal(null)}
+        title={`Phone List - ${selectedClient}`}
+      >
+        <div className="mb-3 flex justify-end">
+          <button
+            onClick={() => setOpenModal('callQueuesModal')}
+            disabled={phoneList.callQueues.length === 0}
+            className="px-3 py-1.5 border border-gray-500 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Call Queues ({phoneList.callQueues.length})
+          </button>
+        </div>
+        <DataTable
+          data={phoneList.users}
+          columns={[
+            { key: 'Name', label: 'Name', sortable: true },
+            { key: 'Extension', label: 'Extension', sortable: true },
+            { key: 'Direct Number (DID)', label: 'Direct Number (DID)', sortable: true },
+            { key: 'Mobile Phone', label: 'Mobile Phone', sortable: true },
+            { key: 'Email', label: 'Email', type: 'email', sortable: true },
+            { key: 'Department', label: 'Department', sortable: true },
+            { key: 'Job Title', label: 'Job Title', sortable: true },
+            { key: 'Site', label: 'Site', sortable: true },
+            { key: 'Status', label: 'Status', sortable: true },
+          ]}
+          enableSearch={true}
+          enableExport={true}
+          tableId="phoneListModal"
+          defaultSort={getSortConfig('phoneListModal')}
+          onSortChange={handleSortChange}
+        />
+      </FullPageModal>
+
+      <FullPageModal
+        isOpen={openModal === 'callQueuesModal'}
+        onClose={() => setOpenModal('phoneListModal')}
+        title={`Call Queues - ${selectedClient}`}
+      >
+        <DataTable
+          data={phoneList.callQueues}
+          columns={[
+            { key: 'Mailbox ID', label: 'Mailbox ID', sortable: true },
+            { key: 'First Name', label: 'First Name', sortable: true },
+            { key: 'Last Name', label: 'Last Name', sortable: true },
+            { key: 'Extension', label: 'Extension', sortable: true },
+            { key: 'Assigned Call Queues', label: 'Assigned Call Queues', sortable: true },
+          ]}
+          enableSearch={true}
+          enableExport={true}
+          tableId="callQueuesModal"
+          defaultSort={getSortConfig('callQueuesModal')}
+          onSortChange={handleSortChange}
         />
       </FullPageModal>
 
