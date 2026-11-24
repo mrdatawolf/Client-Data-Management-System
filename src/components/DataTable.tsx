@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, Fragment, type ReactNode } from "react";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface Column {
   key: string;
@@ -43,37 +44,6 @@ interface DataTableProps {
   expandedRowRenderer?: (row: any) => ReactNode;
   // Pagination control
   hidePagination?: boolean;
-}
-
-// navigator.clipboard requires a secure context (HTTPS or localhost). When this app is
-// deployed and accessed over plain HTTP on a LAN (e.g. http://<server-ip>:6030), the
-// Clipboard API is unavailable, so fall back to the legacy execCommand copy path.
-async function copyToClipboard(text: string): Promise<boolean> {
-  if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // fall through to legacy fallback
-    }
-  }
-
-  try {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '-1000px';
-    textarea.style.left = '-1000px';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    const success = document.execCommand('copy');
-    document.body.removeChild(textarea);
-    return success;
-  } catch {
-    return false;
-  }
 }
 
 export function DataTable({
@@ -269,16 +239,14 @@ export function DataTable({
 
     setEditingCell({ rowIndex, columnKey });
     setEditValue(currentValue != null ? String(currentValue) : '');
+  };
 
-    if (column.type === 'password' && currentValue) {
-      copyToClipboard(String(currentValue)).then((ok) => {
-        if (!ok) return;
-        const key = `${rowIndex}-${columnKey}`;
-        setCopiedCell(key);
-        if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-        copiedTimeoutRef.current = setTimeout(() => setCopiedCell(null), 1500);
-      });
-    }
+  const handleCopyCell = async (rowIndex: number, columnKey: string, value: any) => {
+    const ok = await copyToClipboard(String(value));
+    if (!ok) return;
+    setCopiedCell(`${rowIndex}-${columnKey}`);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopiedCell(null), 1500);
   };
 
   const handleEditSave = async () => {
@@ -434,7 +402,9 @@ export function DataTable({
                         const isCheckbox = col.type === 'checkbox';
                         const isEditingThis = editingCell?.rowIndex === rowIndex && editingCell?.columnKey === col.key;
                         const isCellEditable = isEditable && col.editable !== false;
-                        const isCopiedThis = isPassword && copiedCell === `${rowIndex}-${col.key}`;
+                        const isCopiedThis = copiedCell === `${rowIndex}-${col.key}`;
+                        const hasValue = value !== null && value !== undefined && value !== '';
+                        const showCopy = isCellEditable && !isCheckbox && hasValue;
 
                         return (
                           <td
@@ -484,28 +454,50 @@ export function DataTable({
                                 {isSaving && (
                                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 animate-pulse">...</span>
                                 )}
-                                {!isSaving && isCopiedThis && (
-                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 text-xs">Copied!</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {isPassword && enablePasswordMasking ? (
+                                  <span
+                                    className="font-mono truncate"
+                                    title={isCellEditable ? 'Double-click to reveal & edit' : undefined}
+                                  >
+                                    {'•'.repeat(8)}
+                                  </span>
+                                ) : col.type === 'url' && value ? (
+                                  <a
+                                    href={value}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="truncate text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300"
+                                  >
+                                    {value}
+                                  </a>
+                                ) : (
+                                  <span className="truncate" title={String(value || '')}>{value || '-'}</span>
+                                )}
+                                {showCopy && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleCopyCell(rowIndex, col.key, value); }}
+                                    onDoubleClick={(e) => e.stopPropagation()}
+                                    title={isCopiedThis ? 'Copied!' : `Copy ${col.label}`}
+                                    aria-label={`Copy ${col.label}`}
+                                    className={`shrink-0 p-0.5 rounded border-none bg-transparent cursor-pointer transition-colors ${isCopiedThis ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-600'}`}
+                                  >
+                                    {isCopiedThis ? (
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                                      </svg>
+                                    ) : (
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5" aria-hidden="true">
+                                        <rect x="7" y="7" width="10" height="10" rx="1.5" />
+                                        <path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3h-7A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13H7" />
+                                      </svg>
+                                    )}
+                                  </button>
                                 )}
                               </div>
-                            ) : isPassword && enablePasswordMasking ? (
-                              <span
-                                className="font-mono"
-                                title={isCellEditable ? 'Double-click to reveal, copy & edit' : undefined}
-                              >
-                                {'•'.repeat(8)}
-                              </span>
-                            ) : col.type === 'url' && value ? (
-                              <a
-                                href={value}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300"
-                              >
-                                {value}
-                              </a>
-                            ) : (
-                              <span title={String(value || '')}>{value || '-'}</span>
                             )}
                           </td>
                         );

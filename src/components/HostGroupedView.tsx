@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface VM {
   Name: string;
@@ -324,10 +325,6 @@ export function HostGroupedView({ vms, containers, daemons, coreInfra, onAdd }: 
   const openWebUI = (ip: string, port?: number) => {
     const url = port ? `http://${ip}:${port}` : `http://${ip}`;
     window.open(url, "_blank");
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
   };
 
   // Helper to convert IP to numeric for proper sorting
